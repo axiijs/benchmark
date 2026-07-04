@@ -182,11 +182,17 @@ async function main() {
   try {
     await waitForServer(`${baseUrl}/real-browser-benchmark.html`);
 
-    browser = await chromium.launch({
-      channel: "chrome",
+    const launchOptions = {
       headless: true,
       args: ["--enable-precise-memory-info", "--js-flags=--expose-gc"],
-    });
+    };
+    try {
+      browser = await chromium.launch({ ...launchOptions, channel: "chrome" });
+    } catch (error) {
+      // 环境里没有安装 Chrome 时退回 Playwright 自带的 Chromium
+      console.warn(`Chrome channel unavailable (${String(error?.message ?? error).split("\n")[0]}), falling back to bundled Chromium`);
+      browser = await chromium.launch(launchOptions);
+    }
 
     const consoleMessages = [];
     let result;
@@ -243,7 +249,12 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exitCode = 1;
-});
+main()
+  .catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+  })
+  .finally(() => {
+    // vite preview 子进程的 stdio 管道可能让 node 事件循环无法自然退出，这里显式退出
+    process.exit(process.exitCode ?? 0);
+  });

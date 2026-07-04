@@ -412,8 +412,11 @@ class AxiiAdapter {
         "div",
         { className: "list" },
         createElement("div", { className: "count" }, () => `Items: ${this.items.length}`),
-        this.items.map((item) =>
-          createElement("div", { key: item.id, className: "item" }, () => item.label())
+        // skipItemEffect: 行映射函数没有直接读取响应式依赖（label 是延迟读取的），
+        // 用 data0 的公开选项跳过每行的 map effect 分配
+        this.items.map(
+          (item) => createElement("div", { key: item.id, className: "item" }, () => item.label()),
+          { skipItemEffect: true }
         )
       );
     };
@@ -439,8 +442,9 @@ class AxiiAdapter {
       return createElement(
         "div",
         { className: "static-list" },
-        this.staticItems.map((item) =>
-          createElement("div", { key: item.id, className: "item" }, item.label)
+        this.staticItems.map(
+          (item) => createElement("div", { key: item.id, className: "item" }, item.label),
+          { skipItemEffect: true }
         )
       );
     };
@@ -458,8 +462,9 @@ class AxiiAdapter {
         "div",
         { className: "list" },
         createElement("div", { className: "count" }, () => `Items: ${this.staticRowItems.length}`),
-        this.staticRowItems.map((item) =>
-          createElement("div", { key: item.id, className: "item" }, item.label)
+        this.staticRowItems.map(
+          (item) => createElement("div", { key: item.id, className: "item" }, item.label),
+          { skipItemEffect: true }
         )
       );
     };
@@ -476,8 +481,9 @@ class AxiiAdapter {
       return createElement(
         "div",
         { className: "list" },
-        this.dynamicAttrItems.map((item) =>
-          createElement("div", { key: item.id, className: () => item.className() }, item.label)
+        this.dynamicAttrItems.map(
+          (item) => createElement("div", { key: item.id, className: () => item.className() }, item.label),
+          { skipItemEffect: true }
         )
       );
     };
@@ -618,7 +624,10 @@ class AxiiAdapter {
     const TempList = ({}, { createElement }) => createElement(
       "div",
       { className: "list" },
-      tempItems.map((item) => createElement("div", { key: item.id, className: "item" }, () => item.label()))
+      tempItems.map(
+        (item) => createElement("div", { key: item.id, className: "item" }, () => item.label()),
+        { skipItemEffect: true }
+      )
     );
     const tempRoot = createAxiiRoot(tempContainer);
     tempRoot.render(axiiCreateElement(TempList, {}));

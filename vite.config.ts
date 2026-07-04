@@ -24,7 +24,8 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
-    minify: 'esbuild',
+    // BENCH_NO_MINIFY=true 用于 CPU profile 时保留可读的函数名
+    minify: process.env.BENCH_NO_MINIFY === 'true' ? false : 'esbuild',
     sourcemap: true,
     rollupOptions: {
       input: {
