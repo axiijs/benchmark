@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axii Performance Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        h1 { color: white; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .controls { margin: 20px 0; }
+        button { 
+            background: white; 
+            color: #667eea; 
+            border: none; 
+            padding: 10px 20px; 
+            margin: 5px; 
+            cursor: pointer; 
+            font-weight: bold;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        button:hover { 
+            background: #f0f0f0; 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+        #results { 
+            background: rgba(255,255,255,0.95); 
+            color: #333;
+            padding: 20px; 
+            border-radius: 10px; 
+            margin-top: 20px;
+            white-space: pre-wrap;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+        .metric { color: #667eea; font-weight: bold; }
+        #app { 
+            max-height: 400px; 
+            overflow-y: auto; 
+            border: 2px solid white; 
+            padding: 10px;
+            margin: 20px 0;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+        }
+        .item {
+            padding: 5px;
+            margin: 2px 0;
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .item:hover { background: rgba(255,255,255,0.3); }
+        .item.selected { background: white; color: #667eea; }
+    </style>
+</head>
+<body>
+    <h1>🚀 Axii Performance Benchmark</h1>
+    
+    <div class="controls">
+        <button onclick="runBenchmark('create', 100)">Create 100</button>
+        <button onclick="runBenchmark('create', 1000)">Create 1000</button>
+        <button onclick="runBenchmark('create', 5000)">Create 5000</button>
+        <button onclick="runBenchmark('append', 100)">Append 100</button>
+        <button onclick="runBenchmark('update', 100)">Update 100</button>
+        <button onclick="runBenchmark('remove', 100)">Remove 100</button>
+        <button onclick="runBenchmark('clear')">Clear</button>
+        <button onclick="runBenchmark('sort')">Sort</button>
+        <button onclick="runBenchmark('swap')">Swap</button>
+        <button onclick="runFullBenchmark()">Run Full Benchmark</button>
+    </div>
+
+    <div id="app"></div>
+    <div id="results"></div>
+
+    <script type="module">
+        // Import Axii from CDN or local build
+        import { createElement, createRoot, RxList, atom } from 'https://cdn.skypack.dev/axii@3.7.13';
+        
+        let root = null;
+        let items = null;
+        let selectedId = null;
+        let nextId = 0;
+        
+        function setupAxii() {
+            return new Promise((resolve) => {
+                const container = document.getElementById('app');
+                
+                // Initialize reactive data
+                items = new RxList([]);
+                selectedId = atom(null);
+                
+                // Component
+                const ListComponent = ({}, { createElement }) => {
+                    return createElement('div', {},
+                        createElement('div', {}, () => items.length > 0 ? `Items: ${items.length}` : ''),
+                        createElement('div', { className: 'list' },
+                            () => items.map(item => 
+                                createElement('div', {
+                                    key: item.id,
+                                    className: () => `item ${selectedId() === item.id ? 'selected' : ''}`,
+                                    onClick: () => selectedId(item.id)
+                                }, () => item.label())
+                            )
+                        )
+                    );
+                };
+                
+                // Create root and render
+                if (root) root.destroy();
+                root = createRoot(container);
+                root.render(createElement(ListComponent, {}));
+                
+                resolve();
+            });
+        }
+        
+        // API methods
+        const api = {
+            create: (count) => {
+                items.splice(0, items.length);
+                const newItems = [];
+                for (let i = 0; i < count; i++) {
+                    newItems.push({
+                        id: nextId++,
+                        label: atom(`Item ${nextId} - ${Math.random().toString(36).substr(2, 9)}`),
+                        selected: atom(false)
+                    });
+                }
+                items.push(...newItems);
+            },
+            append: (count) => {
+                const newItems = [];
+                for (let i = 0; i < count; i++) {
+                    newItems.push({
+                        id: nextId++,
+                        label: atom(`Appended ${nextId}`),
+                        selected: atom(false)
+                    });
+                }
+                items.push(...newItems);
+            },
+            update: (count) => {
+                for (let i = 0; i < count && i < items.length; i++) {
+                    const idx = Math.floor(Math.random() * items.length);
+                    if (items[idx]) {
+                        items[idx].label(`Updated ${Date.now()}`);
+                    }
+                }
+            },
+            remove: (count) => {
+                for (let i = 0; i < count && items.length > 0; i++) {
+                    const idx = Math.floor(Math.random() * items.length);
+                    items.splice(idx, 1);
+                }
+            },
+            clear: () => {
+                items.splice(0, items.length);
+            },
+            sort: () => {
+                const sorted = [...items].sort((a, b) => 
+                    a.label().localeCompare(b.label())
+                );
+                items.splice(0, items.length, ...sorted);
+            },
+            swap: () => {
+                if (items.length >= 2) {
+                    const idx1 = Math.floor(Math.random() * items.length);
+                    const idx2 = Math.floor(Math.random() * items.length);
+                    const temp = items[idx1];
+                    items[idx1] = items[idx2];
+                    items[idx2] = temp;
+                }
+            }
+        };
+        
+        function measure(name, fn, iterations = 100) {
+            const times = [];
+            
+            // Warmup
+            for (let i = 0; i < 10; i++) fn();
+            
+            // Measure
+            for (let i = 0; i < iterations; i++) {
+                const start = performance.now();
+                fn();
+                const end = performance.now();
+                times.push(end - start);
+            }
+            
+            const sorted = times.sort((a, b) => a - b);
+            return {
+                name,
+                mean: times.reduce((a, b) => a + b, 0) / times.length,
+                median: sorted[Math.floor(sorted.length / 2)],
+                min: sorted[0],
+                max: sorted[sorted.length - 1],
+                p95: sorted[Math.floor(sorted.length * 0.95)]
+            };
+        }
+        
+        window.runBenchmark = async function(operation, count) {
+            const results = document.getElementById('results');
+            results.innerHTML = 'Setting up Axii...\n';
+            
+            await setupAxii();
+            await new Promise(r => setTimeout(r, 100)); // Let Axii settle
+            
+            results.innerHTML += `Running ${operation} benchmark...\n\n`;
+            
+            // Prepare test
+            if (operation !== 'create' && operation !== 'clear') {
+                api.create(1000); // Create initial data
+                await new Promise(r => setTimeout(r, 100));
+            }
+            
+            // Run benchmark
+            const result = measure(`Axii ${operation}`, () => {
+                switch(operation) {
+                    case 'create': api.create(count || 1000); break;
+                    case 'append': api.append(count || 100); break;
+                    case 'update': api.update(count || 100); break;
+                    case 'remove': api.remove(count || 100); break;
+                    case 'clear': api.clear(); break;
+                    case 'sort': api.sort(); break;
+                    case 'swap': api.swap(); break;
+                }
+            });
+            
+            results.innerHTML += `<span class="metric">Results for ${operation}:</span>\n`;
+            results.innerHTML += `  Mean:   ${result.mean.toFixed(3)}ms\n`;
+            results.innerHTML += `  Median: ${result.median.toFixed(3)}ms\n`;
+            results.innerHTML += `  Min:    ${result.min.toFixed(3)}ms\n`;
+            results.innerHTML += `  Max:    ${result.max.toFixed(3)}ms\n`;
+            results.innerHTML += `  P95:    ${result.p95.toFixed(3)}ms\n`;
+            results.innerHTML += `  Ops/sec: ${(1000 / result.mean).toFixed(0)}\n`;
+            
+            return result;
+        };
+        
+        window.runFullBenchmark = async function() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<span class="metric">Running Full Axii Benchmark Suite...</span>\n\n';
+            
+            const allResults = {};
+            const operations = [
+                { op: 'create', count: 100 },
+                { op: 'create', count: 1000 },
+                { op: 'create', count: 5000 },
+                { op: 'append', count: 100 },
+                { op: 'update', count: 100 },
+                { op: 'remove', count: 100 },
+                { op: 'clear' },
+                { op: 'sort' },
+                { op: 'swap' }
+            ];
+            
+            for (const { op, count } of operations) {
+                const result = await runBenchmark(op, count);
+                allResults[`${op}${count ? '_' + count : ''}`] = result;
+                results.innerHTML += '\n';
+                await new Promise(r => setTimeout(r, 100));
+            }
+            
+            // Summary
+            results.innerHTML += '\n<span class="metric">SUMMARY:</span>\n';
+            const totalTime = Object.values(allResults).reduce((sum, r) => sum + r.mean, 0);
+            results.innerHTML += `Total time for all operations: ${totalTime.toFixed(2)}ms\n`;
+            
+            // Key metrics
+            results.innerHTML += '\n<span class="metric">Key Metrics:</span>\n';
+            results.innerHTML += `Create 1000: ${allResults.create_1000.mean.toFixed(2)}ms\n`;
+            results.innerHTML += `Update 100:  ${allResults.update_100.mean.toFixed(2)}ms\n`;
+            results.innerHTML += `Swap 2:      ${allResults.swap.mean.toFixed(2)}ms\n`;
+            
+            // Performance advantages
+            results.innerHTML += '\n<span class="metric">Axii Advantages:</span>\n';
+            results.innerHTML += `✅ No Virtual DOM overhead\n`;
+            results.innerHTML += `✅ Precise reactive updates\n`;
+            results.innerHTML += `✅ Efficient RxList operations\n`;
+            results.innerHTML += `✅ Components execute only once\n`;
+            
+            console.log('Axii Benchmark Results:', allResults);
+        };
+    </script>
+</body>
+</html>

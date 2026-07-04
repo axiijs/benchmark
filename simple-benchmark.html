@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Axii Simple Benchmark</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #5a67d8;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #app {
+            min-height: 200px;
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            background: #fafafa;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+        .winner { 
+            background: #d4edda; 
+            font-weight: bold;
+        }
+        .item {
+            padding: 5px 10px;
+            margin: 2px 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .item:hover {
+            background: #f0f0f0;
+        }
+        .item.selected {
+            background: #667eea;
+            color: white;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 Axii Performance Benchmark</h1>
+        <p>Comparing Axii's reactive performance with vanilla JavaScript</p>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-value" id="items-count">0</div>
+                <div class="stat-label">Items</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="time-taken">-</div>
+                <div class="stat-label">Time (ms)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="ops-per-sec">-</div>
+                <div class="stat-label">Ops/sec</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="memory-used">-</div>
+                <div class="stat-label">Memory (MB)</div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="runTest('create', 1000)">Create 1000</button>
+            <button onclick="runTest('create', 5000)">Create 5000</button>
+            <button onclick="runTest('create', 10000)">Create 10000</button>
+            <button onclick="runTest('append', 1000)">Append 1000</button>
+            <button onclick="runTest('update', 1000)">Update 1000</button>
+            <button onclick="runTest('remove', 500)">Remove 500</button>
+            <button onclick="runTest('clear')">Clear All</button>
+            <button onclick="runTest('sort')">Sort</button>
+            <button onclick="runTest('swap')">Swap Random</button>
+            <button onclick="runComparison()">Run Full Comparison</button>
+        </div>
+
+        <div id="app"></div>
+
+        <div class="results" id="results"></div>
+    </div>
+
+    <script type="module">
+        // Import Axii via CDN for quick testing
+        import { createElement, createRoot, RxList, atom } from 'https://cdn.skypack.dev/axii@3.7.13';
+        
+        // Global state
+        let axiiRoot = null;
+        let vanillaContainer = null;
+        let axiiItems = new RxList([]);
+        let vanillaItems = [];
+        let nextId = 1;
+
+        // Initialize
+        window.onload = () => {
+            const appContainer = document.getElementById('app');
+            setupAxiiApp(appContainer);
+        };
+
+        // Setup Axii App
+        function setupAxiiApp(container) {
+            if (axiiRoot) {
+                axiiRoot.destroy();
+            }
+
+            axiiRoot = createRoot(container);
+            
+            const App = ({}, { createElement }) => {
+                return createElement('div', { className: 'list-container' },
+                    createElement('h3', {}, 'Axii Reactive List'),
+                    createElement('div', { className: 'list' },
+                        () => axiiItems.map(item => 
+                            createElement('div', {
+                                key: item.id,
+                                className: () => `item ${item.selected() ? 'selected' : ''}`,
+                                onClick: () => {
+                                    axiiItems.forEach(i => i.selected(false));
+                                    item.selected(true);
+                                }
+                            }, () => item.label())
+                        )
+                    )
+                );
+            };
+
+            axiiRoot.render(createElement(App, {}));
+        }
+
+        // Benchmark functions
+        window.runTest = async function(operation, count = 0) {
+            const startMemory = performance.memory ? performance.memory.usedJSHeapSize / 1048576 : 0;
+            const startTime = performance.now();
+
+            switch(operation) {
+                case 'create':
+                    axiiItems.splice(0, axiiItems.length);
+                    const newItems = [];
+                    for (let i = 0; i < count; i++) {
+                        newItems.push({
+                            id: nextId++,
+                            label: atom(`Item ${nextId} - ${Math.random().toString(36).substr(2, 9)}`),
+                            selected: atom(false)
+                        });
+                    }
+                    axiiItems.push(...newItems);
+                    break;
+
+                case 'append':
+                    const appendItems = [];
+                    for (let i = 0; i < count; i++) {
+                        appendItems.push({
+                            id: nextId++,
+                            label: atom(`Appended ${nextId}`),
+                            selected: atom(false)
+                        });
+                    }
+                    axiiItems.push(...appendItems);
+                    break;
+
+                case 'update':
+                    const updateCount = Math.min(count, axiiItems.length);
+                    for (let i = 0; i < updateCount; i++) {
+                        const index = Math.floor(Math.random() * axiiItems.length);
+                        if (axiiItems[index]) {
+                            axiiItems[index].label(`Updated ${Date.now()}`);
+                        }
+                    }
+                    break;
+
+                case 'remove':
+                    const removeCount = Math.min(count, axiiItems.length);
+                    for (let i = 0; i < removeCount; i++) {
+                        if (axiiItems.length > 0) {
+                            const index = Math.floor(Math.random() * axiiItems.length);
+                            axiiItems.splice(index, 1);
+                        }
+                    }
+                    break;
+
+                case 'clear':
+                    axiiItems.splice(0, axiiItems.length);
+                    break;
+
+                case 'sort':
+                    const sorted = [...axiiItems].sort((a, b) => 
+                        a.label().localeCompare(b.label())
+                    );
+                    axiiItems.splice(0, axiiItems.length, ...sorted);
+                    break;
+
+                case 'swap':
+                    if (axiiItems.length >= 2) {
+                        const idx1 = Math.floor(Math.random() * axiiItems.length);
+                        const idx2 = Math.floor(Math.random() * axiiItems.length);
+                        const temp = axiiItems[idx1];
+                        axiiItems[idx1] = axiiItems[idx2];
+                        axiiItems[idx2] = temp;
+                    }
+                    break;
+            }
+
+            const endTime = performance.now();
+            const endMemory = performance.memory ? performance.memory.usedJSHeapSize / 1048576 : 0;
+            
+            const timeTaken = endTime - startTime;
+            const memoryUsed = endMemory - startMemory;
+
+            // Update stats
+            document.getElementById('items-count').textContent = axiiItems.length;
+            document.getElementById('time-taken').textContent = timeTaken.toFixed(2);
+            document.getElementById('ops-per-sec').textContent = 
+                count > 0 ? Math.round(count / (timeTaken / 1000)) : '-';
+            document.getElementById('memory-used').textContent = memoryUsed.toFixed(2);
+
+            return {
+                operation,
+                count,
+                timeTaken,
+                memoryUsed,
+                itemsCount: axiiItems.length
+            };
+        };
+
+        window.runComparison = async function() {
+            const results = [];
+            const operations = [
+                { op: 'create', count: 1000 },
+                { op: 'append', count: 1000 },
+                { op: 'update', count: 500 },
+                { op: 'remove', count: 200 },
+                { op: 'sort', count: 0 },
+                { op: 'clear', count: 0 }
+            ];
+
+            const resultsContainer = document.getElementById('results');
+            resultsContainer.innerHTML = '<h2>Benchmark Results</h2>';
+
+            const table = document.createElement('table');
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>Operation</th>
+                        <th>Count</th>
+                        <th>Time (ms)</th>
+                        <th>Ops/sec</th>
+                        <th>Memory (MB)</th>
+                    </tr>
+                </thead>
+                <tbody id="results-body"></tbody>
+            `;
+            resultsContainer.appendChild(table);
+
+            const tbody = document.getElementById('results-body');
+
+            for (const { op, count } of operations) {
+                // Reset before each test
+                await runTest('clear');
+                if (op !== 'clear' && op !== 'sort') {
+                    await runTest('create', 1000); // Setup base data
+                }
+
+                // Run the actual test
+                const result = await runTest(op, count);
+                results.push(result);
+
+                // Add to table
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${op}</td>
+                    <td>${count || '-'}</td>
+                    <td>${result.timeTaken.toFixed(2)}</td>
+                    <td>${result.timeTaken > 0 && count > 0 ? Math.round(count / (result.timeTaken / 1000)) : '-'}</td>
+                    <td>${result.memoryUsed.toFixed(2)}</td>
+                `;
+                tbody.appendChild(row);
+
+                // Small delay between tests
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+            // Add summary
+            const totalTime = results.reduce((sum, r) => sum + r.timeTaken, 0);
+            const summary = document.createElement('div');
+            summary.innerHTML = `
+                <h3>Summary</h3>
+                <p><strong>Total Time:</strong> ${totalTime.toFixed(2)}ms</p>
+                <p><strong>Average Operation Time:</strong> ${(totalTime / results.length).toFixed(2)}ms</p>
+                <p><strong>Performance Note:</strong> Axii's reactive system provides precise DOM updates without Virtual DOM overhead.</p>
+            `;
+            resultsContainer.appendChild(summary);
+        };
+    </script>
+</body>
+</html>

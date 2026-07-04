@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue 3 Performance Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #f5f5f5; color: #41b883; }
+        h1 { color: #41b883; }
+        .controls { margin: 20px 0; }
+        button { 
+            background: #41b883; 
+            color: white; 
+            border: none; 
+            padding: 10px 20px; 
+            margin: 5px; 
+            cursor: pointer; 
+            font-weight: bold;
+            border-radius: 5px;
+        }
+        button:hover { background: #35955f; }
+        #results { 
+            background: white; 
+            padding: 20px; 
+            border-radius: 10px; 
+            margin-top: 20px;
+            white-space: pre-wrap;
+            color: #333;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .metric { color: #41b883; font-weight: bold; }
+        #app { 
+            max-height: 400px; 
+            overflow-y: auto; 
+            border: 2px solid #41b883; 
+            padding: 10px;
+            margin: 20px 0;
+            border-radius: 5px;
+            background: white;
+        }
+        .item {
+            padding: 5px;
+            margin: 2px 0;
+            background: #f0f0f0;
+            border-radius: 3px;
+            cursor: pointer;
+            color: #333;
+        }
+        .item:hover { background: #e0e0e0; }
+        .item.selected { background: #41b883; color: white; }
+    </style>
+</head>
+<body>
+    <h1>🍃 Vue 3 Performance Benchmark</h1>
+    
+    <div class="controls">
+        <button onclick="runBenchmark('create', 100)">Create 100</button>
+        <button onclick="runBenchmark('create', 1000)">Create 1000</button>
+        <button onclick="runBenchmark('create', 5000)">Create 5000</button>
+        <button onclick="runBenchmark('append', 100)">Append 100</button>
+        <button onclick="runBenchmark('update', 100)">Update 100</button>
+        <button onclick="runBenchmark('remove', 100)">Remove 100</button>
+        <button onclick="runBenchmark('clear')">Clear</button>
+        <button onclick="runBenchmark('sort')">Sort</button>
+        <button onclick="runBenchmark('swap')">Swap</button>
+        <button onclick="runFullBenchmark()">Run Full Benchmark</button>
+    </div>
+
+    <div id="app">
+        <div v-if="items.length > 0">Items: {{ items.length }}</div>
+        <div class="list">
+            <div
+                v-for="item in items"
+                :key="item.id"
+                :class="['item', { selected: selectedId === item.id }]"
+                @click="selectItem(item.id)"
+            >
+                {{ item.label }}
+            </div>
+        </div>
+    </div>
+    
+    <div id="results"></div>
+
+    <!-- Vue 3 Production Build -->
+    <script src="https://unpkg.com/vue@3.5.13/dist/vue.global.prod.js"></script>
+    
+    <script>
+        const { createApp, ref, reactive } = Vue;
+        
+        let app = null;
+        let api = null;
+        
+        function setupVue() {
+            return new Promise((resolve) => {
+                const items = ref([]);
+                const selectedId = ref(null);
+                let nextId = 0;
+                
+                app = createApp({
+                    setup() {
+                        const selectItem = (id) => {
+                            selectedId.value = id;
+                        };
+                        
+                        // API methods
+                        api = {
+                            create: (count) => {
+                                const newItems = [];
+                                for (let i = 0; i < count; i++) {
+                                    newItems.push({
+                                        id: nextId++,
+                                        label: `Item ${nextId} - ${Math.random().toString(36).substr(2, 9)}`
+                                    });
+                                }
+                                items.value = newItems;
+                            },
+                            append: (count) => {
+                                const newItems = [...items.value];
+                                for (let i = 0; i < count; i++) {
+                                    newItems.push({
+                                        id: nextId++,
+                                        label: `Appended ${nextId}`
+                                    });
+                                }
+                                items.value = newItems;
+                            },
+                            update: (count) => {
+                                const newItems = [...items.value];
+                                for (let i = 0; i < count && i < newItems.length; i++) {
+                                    const idx = Math.floor(Math.random() * newItems.length);
+                                    newItems[idx] = {
+                                        ...newItems[idx],
+                                        label: `Updated ${Date.now()}`
+                                    };
+                                }
+                                items.value = newItems;
+                            },
+                            remove: (count) => {
+                                let newItems = [...items.value];
+                                for (let i = 0; i < count && newItems.length > 0; i++) {
+                                    const idx = Math.floor(Math.random() * newItems.length);
+                                    newItems.splice(idx, 1);
+                                }
+                                items.value = newItems;
+                            },
+                            clear: () => {
+                                items.value = [];
+                            },
+                            sort: () => {
+                                items.value = [...items.value].sort((a, b) => 
+                                    a.label.localeCompare(b.label)
+                                );
+                            },
+                            swap: () => {
+                                if (items.value.length >= 2) {
+                                    const newItems = [...items.value];
+                                    const idx1 = Math.floor(Math.random() * newItems.length);
+                                    const idx2 = Math.floor(Math.random() * newItems.length);
+                                    [newItems[idx1], newItems[idx2]] = [newItems[idx2], newItems[idx1]];
+                                    items.value = newItems;
+                                }
+                            }
+                        };
+                        
+                        return {
+                            items,
+                            selectedId,
+                            selectItem
+                        };
+                    }
+                });
+                
+                app.mount('#app');
+                resolve();
+            });
+        }
+        
+        function measure(name, fn, iterations = 100) {
+            const times = [];
+            
+            // Warmup
+            for (let i = 0; i < 10; i++) fn();
+            
+            // Measure
+            for (let i = 0; i < iterations; i++) {
+                const start = performance.now();
+                fn();
+                const end = performance.now();
+                times.push(end - start);
+            }
+            
+            const sorted = times.sort((a, b) => a - b);
+            return {
+                name,
+                mean: times.reduce((a, b) => a + b, 0) / times.length,
+                median: sorted[Math.floor(sorted.length / 2)],
+                min: sorted[0],
+                max: sorted[sorted.length - 1],
+                p95: sorted[Math.floor(sorted.length * 0.95)]
+            };
+        }
+        
+        async function runBenchmark(operation, count) {
+            const results = document.getElementById('results');
+            results.innerHTML = 'Setting up Vue 3...\n';
+            
+            if (!app) {
+                await setupVue();
+                await new Promise(r => setTimeout(r, 100)); // Let Vue settle
+            }
+            
+            results.innerHTML += `Running ${operation} benchmark...\n\n`;
+            
+            // Prepare test
+            if (operation !== 'create' && operation !== 'clear') {
+                api.create(1000); // Create initial data
+                await new Promise(r => setTimeout(r, 100));
+            }
+            
+            // Run benchmark
+            const result = measure(`Vue ${operation}`, () => {
+                switch(operation) {
+                    case 'create': api.create(count || 1000); break;
+                    case 'append': api.append(count || 100); break;
+                    case 'update': api.update(count || 100); break;
+                    case 'remove': api.remove(count || 100); break;
+                    case 'clear': api.clear(); break;
+                    case 'sort': api.sort(); break;
+                    case 'swap': api.swap(); break;
+                }
+            });
+            
+            results.innerHTML += `<span class="metric">Results for ${operation}:</span>\n`;
+            results.innerHTML += `  Mean:   ${result.mean.toFixed(3)}ms\n`;
+            results.innerHTML += `  Median: ${result.median.toFixed(3)}ms\n`;
+            results.innerHTML += `  Min:    ${result.min.toFixed(3)}ms\n`;
+            results.innerHTML += `  Max:    ${result.max.toFixed(3)}ms\n`;
+            results.innerHTML += `  P95:    ${result.p95.toFixed(3)}ms\n`;
+            results.innerHTML += `  Ops/sec: ${(1000 / result.mean).toFixed(0)}\n`;
+            
+            return result;
+        }
+        
+        async function runFullBenchmark() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<span class="metric">Running Full Vue 3 Benchmark Suite...</span>\n\n';
+            
+            const allResults = {};
+            const operations = [
+                { op: 'create', count: 100 },
+                { op: 'create', count: 1000 },
+                { op: 'create', count: 5000 },
+                { op: 'append', count: 100 },
+                { op: 'update', count: 100 },
+                { op: 'remove', count: 100 },
+                { op: 'clear' },
+                { op: 'sort' },
+                { op: 'swap' }
+            ];
+            
+            for (const { op, count } of operations) {
+                const result = await runBenchmark(op, count);
+                allResults[`${op}${count ? '_' + count : ''}`] = result;
+                results.innerHTML += '\n';
+                await new Promise(r => setTimeout(r, 100));
+            }
+            
+            // Summary
+            results.innerHTML += '\n<span class="metric">SUMMARY:</span>\n';
+            const totalTime = Object.values(allResults).reduce((sum, r) => sum + r.mean, 0);
+            results.innerHTML += `Total time for all operations: ${totalTime.toFixed(2)}ms\n`;
+            
+            // Key metrics
+            results.innerHTML += '\n<span class="metric">Key Metrics:</span>\n';
+            results.innerHTML += `Create 1000: ${allResults.create_1000.mean.toFixed(2)}ms\n`;
+            results.innerHTML += `Update 100:  ${allResults.update_100.mean.toFixed(2)}ms\n`;
+            results.innerHTML += `Swap 2:      ${allResults.swap.mean.toFixed(2)}ms\n`;
+            
+            console.log('Vue 3 Benchmark Results:', allResults);
+        }
+        
+        window.runBenchmark = runBenchmark;
+        window.runFullBenchmark = runFullBenchmark;
+    </script>
+</body>
+</html>
