@@ -436,7 +436,8 @@ function buildMarkdown({ timestamp, outputDir, results }) {
 async function main() {
   const timestamp = new Date().toISOString();
   const stamp = timestamp.replace(/[:.]/g, "-");
-  const outputDir = path.join(workspaceRoot, "prompt", "output", `axii-heap-snapshots-${stamp}`);
+  // 输出放在本仓库 results/ 下（旧路径指向仓库外的 prompt/output，通常没有写权限）
+  const outputDir = path.join(projectRoot, "results", `axii-heap-snapshots-${stamp}`);
   await fs.mkdir(outputDir, { recursive: true });
 
   const server = spawn(
