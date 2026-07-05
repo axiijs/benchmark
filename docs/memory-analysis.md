@@ -2,6 +2,12 @@
 
 生成时间：2026-07-05。所有数据来自本仓库 `npm run benchmark:memory`（`scripts/run-memory-benchmark.js` + `src/memory-benchmark.js`）的真实测量，非模拟数据。
 
+> **更新（2026-07-05）**：基于本报告第七节的优化建议，axii 侧已完成一轮内存优化
+> （axii 仓库分支 `cursor/memory-optimization-90a2`），本文各表为**优化前**的原始数据，
+> 优化后的对比见文末「八、优化落地后的实测结果」。摘要：细粒度行 973B → 678B（-30%），
+> atom 行 855B → 615B，静态行 253B → 189B（低于 React 的 306B），组件实例 2355B → 1013B
+> （-57%，低于 Vue 的 1907B），同时速度套件总耗时还快了 ~12%。
+
 ## 测量方法
 
 - 浏览器：Playwright Headless Chromium 148，启动参数 `--enable-precise-memory-info --js-flags=--expose-gc`。
@@ -141,6 +147,61 @@ GC 后保留堆增量（含数据本身；数据基线约 84B/行，见下）：
 1. **`ComponentHost` 惰性分配**：4 个 Set、`refs`/`itemConfig`/`exposed`/`frame`、bind 出来的 createElement 闭包全部改为首次使用时分配，预计可把 2.35KB/实例 压到 1KB 以内（多数小组件用不到这些能力），直接改善组件树场景 50%+。
 2. **文本绑定瘦身**：函数 child 路径每行比 atom child 路径多 ~120B（FunctionHost + DeferredBindingEffect 两层）。若 JSX 编译期（vite-plugin）能识别 `() => atomLike()` 形态并降级为 AtomHost 路径，惯用写法可自动省 12%/行；更进一步,把 AtomHost + LightBindingEffect + dep 的三对象结构合并为单对象绑定（Solid 的做法),有望把 700B/绑定压到 400B 级别。
 3. **`CompactElementHost` 已经足够薄**（145B/行,与 fiber 同级）,不是当前瓶颈。
+
+## 八、优化落地后的实测结果（2026-07-05）
+
+第七节的建议已在 axii 仓库实现（分支 `cursor/memory-optimization-90a2`），改动包括：
+
+1. **每个绑定 effect 去掉 3 个实例闭包**：data0 `ReactiveEffect` 构造器逐实例分配的
+   `pauseCollectChild`/`resumeCollectChild`/`dispatch` 箭头函数，在 `LightBindingEffect`
+   构造后用共享函数覆盖。
+2. **Host 与绑定 effect 合并为同一对象**：`AtomHost`/`FunctionHost` 直接继承
+   `LightBindingEffect`/`DeferredBindingEffect`，每个响应式文本绑定少一个对象 + 一个闭包；
+   `FunctionHost` 只在 source 函数声明了参数时才分配 context 对象。
+3. **`StaticHost` 瘦身**：`attachRefs` 从实例箭头函数改为原型方法（长列表每行省一个闭包），
+   去掉恒定初始化的字段槽位。
+4. **`ComponentHost` 全面惰性化**：4 个 Set、`refs`/`exposed`/`frame`/`itemConfig`、全部
+   renderContext 闭包、`DataContext` 都改为首次使用才分配；renderContext 变成全 getter 的
+   轻量包装（组件解构哪个能力才为哪个付费）；无 boundProps/AOP 配置的组件走 props 快路径；
+   无 layoutEffect/ref 的组件跳过 attach 监听注册。
+
+### 稳态列表内存（GC 后保留堆，每行）
+
+| 变体 | 优化前 | 优化后 | 对比 |
+| --- | ---: | ---: | --- |
+| axii 细粒度（函数 child） | 973B | **678B** | -30%，介于 Vue（537B）与 atom 行之间 |
+| axii atom child | 855B | **615B** | -28% |
+| axii 静态行 | 253B | **189B** | -25%，**低于 React（306B）** |
+| react / vue / solid / solid-signal | 306B / 537B / 108B / 490B | 不变 | 参照系 |
+
+### 组件树（每个带 1 个局部状态的叶子组件）
+
+| 框架 | 每组件 |
+| --- | ---: |
+| solid | 290B |
+| react | 826B |
+| **axii（优化后）** | **1013B**（原 2355B，-57%） |
+| vue | 1907B |
+
+axii 从「四者最重（Vue 的 1.23 倍）」变为「React 与 Vue 之间」，与 React 的差距从 2.9 倍缩小到 1.23 倍。
+
+### 卫生指标与速度（必须不回退的约束）
+
+- 清空/销毁后 retained diagnostics 依然全部归零；30 次 create/clear 循环净增 ~16KB（与 Solid 相同量级）；全部 398 + 6 个测试通过。
+- 速度不但没有回退还有改善（分配变少）：`benchmark:real` 四框架总耗时 axii 23.7ms → **20.8ms**
+  （solid 19.6ms / vue 25.1ms / react 69.4ms），create-1000 3.65ms → 2.95ms，update-100
+  0.28ms → 0.24ms，swap-2 0.13ms → 0.08ms。axii 仍保持 append/update/remove/sort/swap/move
+  多数场景第一。
+
+### 剩余差距与归因
+
+细粒度行 678B vs 等价 Solid 写法 490B：剩余差距几乎全部在 data0 侧——每个 atom 的结构
+（闭包 + WeakMap dep 登记）和 `ReactiveEffect` 基类的 11 个实例字段 + deps 数组，比 Solid
+的 signal（3 字段对象）和 computation 重。这需要在 data0 仓库做 atom/dep 的紧凑化
+（例如把 primitive atom 的 dep 内联进 atom 闭包、压缩 effect 基类字段），超出 axii 仓库
+的改动边界，作为后续工作。组件的剩余 ~190B（vs React）主要是 ComponentHost 自身必需字段
+（type/props/children/inputProps/placeholder/pathContext/renderContext 等 12+ 槽位）+
+1 个 createElement bind 闭包，已接近该设计下的下限。
 
 ## 复现方法
 
