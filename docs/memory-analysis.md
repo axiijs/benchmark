@@ -197,11 +197,59 @@ axii 从「四者最重（Vue 的 1.23 倍）」变为「React 与 Vue 之间」
 
 细粒度行 678B vs 等价 Solid 写法 490B：剩余差距几乎全部在 data0 侧——每个 atom 的结构
 （闭包 + WeakMap dep 登记）和 `ReactiveEffect` 基类的 11 个实例字段 + deps 数组，比 Solid
-的 signal（3 字段对象）和 computation 重。这需要在 data0 仓库做 atom/dep 的紧凑化
-（例如把 primitive atom 的 dep 内联进 atom 闭包、压缩 effect 基类字段），超出 axii 仓库
-的改动边界，作为后续工作。组件的剩余 ~190B（vs React）主要是 ComponentHost 自身必需字段
-（type/props/children/inputProps/placeholder/pathContext/renderContext 等 12+ 槽位）+
-1 个 createElement bind 闭包，已接近该设计下的下限。
+的 signal（3 字段对象）和 computation 重。组件的剩余 ~190B（vs React）主要是 ComponentHost
+自身必需字段（type/props/children/inputProps/placeholder/pathContext/renderContext 等
+12+ 槽位）+ 1 个 createElement bind 闭包，已接近该设计下的下限。
+
+## 九、data0 侧优化落地（2026-07-05，第二轮）
+
+上面指出的 data0 侧差距也已实现（补丁见本仓库 `patches/data0-memory-optimization.patch`，
+基于 data0 2.0.0，包含逐对象称重脚本 `scripts/measure-retained.mjs` 与热路径计时脚本
+`scripts/measure-speed.mjs`）：
+
+1. **`ReactiveEffect` 瘦身**：`pauseCollectChild`/`resumeCollectChild`/`dispatch` 从每实例
+   箭头函数改为原型方法（每 effect 少 3 个闭包）；恒定默认值（`isRunningAsync`/
+   `useDepMarker`/`index`/`shouldCollectChild`）移到原型；无 getter 的轻量 effect 不再为
+   `getter`/`isAsync` 占实例槽位；destroy 用赋值 undefined 替代 `delete`（delete 会把对象
+   推进字典属性模式）。
+2. **`Computed` 全面惰性化**：7 个集合字段（triggerInfos/effectFramesArray/
+   keyToEffectFrames/dirtyFromDeps/markedDirtyEffects/savedTriggerInfos/cachedValues）
+   惰性分配；`updatedAt` 从"每实例一个 atom"变为普通时间戳 + 按需 atom；8 个箭头函数字段
+   改为原型方法（scheduler 需要脱离 this 的回调用惰性 bound 版本）。
+3. **primitive atom 共享原型**：`raw` 访问器、`Symbol.toPrimitive`、`IS_ATOM` 标记全部放到
+   共享原型上，实例只保留一个自有值属性；dep 登记改用普通 symbol 赋值替代 defineProperty，
+   避免把 atom 函数推进字典属性模式。
+4. **`RxList.indexKeyDeps`** 惰性分配。
+
+### data0 微基准（node --expose-gc，GC 后保留字节/对象）
+
+| 对象 | 优化前 | 优化后 |
+| --- | ---: | ---: |
+| 轻量绑定 effect | 416B | **136B** (-67%) |
+| atom + 1 订阅者（含 dep/track 记账） | 926B | **621B** (-33%) |
+| computed（含 status/updatedAt 等） | 2370B | **627B** (-74%) |
+| 空 RxList | 5441B | **1792B** (-67%) |
+
+热路径速度（`measure-speed.mjs`）：全部持平或更快——effect 创建/销毁 -18%，
+RxList 1000 行 splice 建删 -51%，atom 读写与 batch 更新持平。data0 全部 174 个测试通过。
+
+### 叠加 data0 后的浏览器实测（axii 优化分支 + data0 补丁）
+
+| 场景 | 仅 axii 优化 | + data0 优化 | 参照 |
+| --- | ---: | ---: | --- |
+| 细粒度行 | 678B | **652B** | Vue 537B / solid-signal 490B |
+| atom child 行 | 615B | **590B** | |
+| 组件（1 个局部状态） | 1013B | **~990B** | React 826B / Vue 1907B |
+| 空应用挂载 | 118KB | **108KB** | Vue 101KB / React 97KB |
+
+速度进一步改善：`benchmark:real` 四框架总耗时 axii 降到 **18.8ms**，与 Solid（18.6ms）
+只差 1%（vue 22.3ms / react 67.2ms）；create-1000 从 2.95ms 降到 2.46ms（初始基线 3.65ms）。
+清空后 retained diagnostics 依然全部归零。
+
+data0 的每绑定"atom+dep+effect"结构从 926B 压到 621B 后，剩余与 Solid 的差距主要是
+架构性的：data0 的 dep 是独立对象 + effect.deps 反向数组（支持双向清理与 dep marker 位），
+Solid 则把订阅内联在 signal/computation 两个对象的数组里。再往下压需要改变依赖图的数据
+结构本身，属于收益递减的大改动。
 
 ## 复现方法
 
