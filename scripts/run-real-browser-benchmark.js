@@ -231,16 +231,28 @@ async function main() {
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     const jsonFile = `results/real-browser-comparison-${stamp}.json`;
     const markdownFile = `results/real-browser-comparison-${stamp}.md`;
-    result.rawJsonFile = jsonFile;
+    // 静态报告（提交进仓库）引用固定路径的 JSON，避免 README/报告里的链接指向被 gitignore 的时间戳文件
+    const staticJsonFile = "reports/performance-benchmark.json";
+    const staticMarkdownFile = "reports/performance-benchmark.md";
+    result.rawJsonFile = staticJsonFile;
+
+    const staticJson = `${JSON.stringify(result, null, 2)}\n`;
+    const markdown = buildMarkdown(result);
+
+    // 完整版（含 server 输出与 console 日志）只落在 results/，提交的静态 JSON 保持干净
     result.serverOutput = serverOutput;
     result.consoleMessages = consoleMessages;
 
+    await fs.mkdir(path.join(projectRoot, "reports"), { recursive: true });
     await fs.writeFile(path.join(projectRoot, jsonFile), `${JSON.stringify(result, null, 2)}\n`);
-    await fs.writeFile(path.join(projectRoot, markdownFile), buildMarkdown(result));
-    await fs.writeFile(path.join(projectRoot, "benchmark-results.md"), buildMarkdown(result));
+    await fs.writeFile(path.join(projectRoot, markdownFile), markdown);
+    await fs.writeFile(path.join(projectRoot, staticJsonFile), staticJson);
+    await fs.writeFile(path.join(projectRoot, staticMarkdownFile), markdown);
+    await fs.writeFile(path.join(projectRoot, "benchmark-results.md"), markdown);
 
     console.log(`JSON: ${jsonFile}`);
     console.log(`Markdown: ${markdownFile}`);
+    console.log(`Static report: ${staticMarkdownFile} (+ ${staticJsonFile})`);
   } finally {
     if (browser) {
       await browser.close().catch(() => {});

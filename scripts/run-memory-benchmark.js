@@ -146,7 +146,7 @@ function buildMarkdown(results) {
     `| ${first.updateChurn.rounds}x update ${first.updateChurn.batch}/${first.updateChurn.listSize} rows | ${churn.join(" | ")} |`
   );
 
-  lines.push("", "Raw JSON files are stored alongside this markdown in `results/`.", "");
+  lines.push("", "Raw JSON: `reports/memory-benchmark.json` (committed). Timestamped copies of each run are written to `results/` (gitignored).", "");
   return lines.join("\n");
 }
 
@@ -202,12 +202,20 @@ async function main() {
     const stamp = new Date().toISOString().replace(/[:.]/g, "-");
     const jsonFile = path.join(projectRoot, `results/memory-benchmark-${stamp}.json`);
     const markdownFile = path.join(projectRoot, `results/memory-benchmark-${stamp}.md`);
-    await fs.writeFile(jsonFile, `${JSON.stringify(results, null, 2)}\n`);
+    // 固定路径的静态报告，随仓库提交
+    const staticJsonFile = path.join(projectRoot, "reports/memory-benchmark.json");
+    const staticMarkdownFile = path.join(projectRoot, "reports/memory-benchmark.md");
+    const json = `${JSON.stringify(results, null, 2)}\n`;
     const markdown = buildMarkdown(results);
+    await fs.mkdir(path.join(projectRoot, "reports"), { recursive: true });
+    await fs.writeFile(jsonFile, json);
     await fs.writeFile(markdownFile, markdown);
+    await fs.writeFile(staticJsonFile, json);
+    await fs.writeFile(staticMarkdownFile, markdown);
     console.log(markdown);
     console.log(`JSON: ${jsonFile}`);
     console.log(`Markdown: ${markdownFile}`);
+    console.log(`Static report: reports/memory-benchmark.md (+ reports/memory-benchmark.json)`);
   } finally {
     if (browser) await browser.close().catch(() => {});
     server.kill("SIGTERM");

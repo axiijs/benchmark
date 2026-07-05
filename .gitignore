@@ -4,9 +4,9 @@ node_modules/
 # Build output
 dist/
 
-# Generated benchmark artifacts
+# Generated benchmark artifacts (timestamped raw runs — not committed).
+# Static reports with stable filenames live in reports/ and ARE committed.
 results/
-reports/
 screenshots/
 prompt/
 
