@@ -62,25 +62,28 @@ npm run dev
 ### Run Benchmarks
 
 ```bash
-# Run all benchmarks
-npm run benchmark
+# Real Playwright/Chromium performance suite (duration + heap delta + retained diagnostics)
+npm run benchmark:real
 
-# Run specific framework
-npm run benchmark -- --framework=axii
+# Cross-framework retained-memory suite
+npm run benchmark:memory
 
-# Run specific test
-npm run benchmark -- --test=list-render
-
-# Development mode (verbose output)
-npm run benchmark:dev
+# Axii heap snapshots for offline analysis
+npm run heap:snapshot
 ```
+
+Note: `benchmark:real` and `benchmark:memory` require a built sibling `../axii` checkout (`cd ../axii && npm run build`) and the Playwright Chromium browser (`npx playwright install chromium`).
 
 ## 📈 Benchmark Results
 
-Results are automatically generated and saved to:
-- `results/` - Raw JSON data
-- `reports/` - HTML reports with charts
-- `screenshots/` - Visual comparisons
+Static reports (committed to this repository, regenerated on every benchmark run):
+
+- [Performance benchmark report](reports/performance-benchmark.md) - duration + heap delta + retained object diagnostics from `npm run benchmark:real` (raw data: [`reports/performance-benchmark.json`](reports/performance-benchmark.json))
+- [Memory benchmark report](reports/memory-benchmark.md) - retained heap, leak checks and long-run growth from `npm run benchmark:memory` (raw data: [`reports/memory-benchmark.json`](reports/memory-benchmark.json))
+- [Latest performance results](benchmark-results.md) - same content as the performance report, kept at the repository root
+- [Memory usage deep-dive analysis](docs/memory-analysis.md) - written analysis of the memory numbers, per-object weighing and optimization history
+
+Each run also writes timestamped raw copies to `results/` (gitignored), and `screenshots/` holds visual comparisons when enabled (gitignored).
 
 ### Metrics Measured
 
@@ -109,26 +112,15 @@ Results are automatically generated and saved to:
 ```
 axii-benchmark/
 ├── src/
-│   ├── frameworks/      # Framework implementations
-│   │   ├── axii/
-│   │   ├── react/
-│   │   ├── vue/
-│   │   ├── svelte/
-│   │   ├── solid/
-│   │   ├── preact/
-│   │   └── qwik/
-│   ├── benchmarks/      # Benchmark test cases
-│   │   ├── reactive/
-│   │   ├── list/
-│   │   ├── component/
-│   │   ├── dom/
-│   │   └── real-world/
-│   ├── utils/          # Utility functions
-│   └── types/          # TypeScript definitions
-├── scripts/            # Build and benchmark scripts
-├── results/            # Benchmark results (JSON)
-├── reports/            # Generated HTML reports
-└── tests/             # Unit tests
+│   ├── frameworks/               # Framework benchmark implementations
+│   ├── real-browser-benchmark.js # In-page harness for benchmark:real
+│   ├── memory-benchmark.js       # In-page harness for benchmark:memory
+│   ├── utils/                    # Utility functions
+│   └── types/                    # TypeScript definitions
+├── scripts/                      # Playwright-based benchmark runners
+├── docs/                         # Methodology and analysis documents
+├── reports/                      # Static benchmark reports (committed)
+└── results/                      # Timestamped raw run outputs (gitignored)
 ```
 
 ## 📝 Test Scenarios
@@ -215,16 +207,15 @@ npm run test:coverage
 
 ## 📚 Documentation
 
-Detailed documentation for each benchmark:
-- [Reactive Updates](docs/reactive-updates.md)
-- [List Rendering](docs/list-rendering.md)
-- [Component Performance](docs/component-performance.md)
-- [Memory Analysis](docs/memory-analysis.md)
-- [Bundle Size](docs/bundle-size.md)
+- [Benchmark Methodology](docs/methodology.md) - test categories, metrics, environment and statistical analysis
+- [Memory Analysis](docs/memory-analysis.md) - deep-dive into retained memory per framework, with per-object weighing
+- [Framework Comparison Analysis](framework-comparison-analysis.md) - architectural comparison behind the numbers
+- [Performance Benchmark Report](reports/performance-benchmark.md) - latest measured performance results
+- [Memory Benchmark Report](reports/memory-benchmark.md) - latest measured memory results
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
+Contributions are welcome! See the [Contributing section of the methodology guide](docs/methodology.md#contributing) for how to add new tests and report issues.
 
 ## 📄 License
 
