@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "benchmark": "node scripts/run-benchmarks.js",
     "benchmark:real": "npm run build && node scripts/run-real-browser-benchmark.js",
+    "benchmark:memory": "npm run build && node scripts/run-memory-benchmark.js",
     "heap:snapshot": "node scripts/run-axii-heap-snapshots.js",
     "benchmark:dev": "node scripts/run-benchmarks.js --dev",
     "test": "vitest",

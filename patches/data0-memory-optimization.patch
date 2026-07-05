@@ -1,0 +1,666 @@
+From a4fa1b02d712fae45f5d06faa8075595244386e9 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Sun, 5 Jul 2026 04:03:06 +0000
+Subject: [PATCH] perf: cut retained memory per effect/computed/atom-dep
+ without hurting speed
+
+- ReactiveEffect: pauseCollectChild/resumeCollectChild/dispatch become
+  prototype methods (were 3 per-instance arrow closures); constant defaults
+  (isRunningAsync/useDepMarker/index/shouldCollectChild) move to the
+  prototype; getter/isAsync only become own properties when a getter is
+  provided; destroy assigns parent = undefined instead of delete (delete
+  pushes the object into dictionary mode)
+- Computed: lazily allocate triggerInfos/effectFramesArray/keyToEffectFrames/
+  dirtyFromDeps/markedDirtyEffects/savedTriggerInfos/cachedValues; updatedAt
+  becomes a plain timestamp with an on-demand atom; recompute/
+  recursiveMarkDirty/callGeneratorGetter/manualTrack/pauseAutoTrack/autoTrack/
+  resetAutoTrack/collectEffect/destroyEffect become prototype methods with
+  lazily bound versions where schedulers need detached callables;
+  createGetterContext binds pause/resumeCollectChild explicitly
+- atom: primitive atoms share one prototype carrying the raw accessor,
+  Symbol.toPrimitive and the IS_ATOM flag; instances keep a single own value
+  property (no more per-atom defineProperty)
+- Notifier.getOrCreatePrimitiveAtomDep: plain symbol assignment instead of
+  defineProperty (kept atoms in fast-properties mode)
+- RxList: indexKeyDeps map lazily allocated
+
+Measured with scripts/measure-retained.mjs (node --expose-gc, retained
+bytes per object): light binding effect 416B -> 136B, effect+atom+dep
+binding 926B -> 621B, computed 2370B -> 627B, empty RxList 5441B -> 1792B.
+scripts/measure-speed.mjs shows hot paths equal or faster (effect
+create/destroy -18%, RxList splice churn -51%). All 174 tests pass.
+---
+ package.json                 |   2 +-
+ scripts/measure-retained.mjs |  62 +++++++++++++++++++++
+ scripts/measure-speed.mjs    |  79 ++++++++++++++++++++++++++
+ src/RxList.ts                |  13 +++--
+ src/atom.ts                  |  34 +++++++++---
+ src/computed.ts              | 105 +++++++++++++++++++++++++----------
+ src/notify.ts                |   8 +--
+ src/reactiveEffect.ts        |  43 ++++++++++----
+ 8 files changed, 287 insertions(+), 59 deletions(-)
+ create mode 100644 scripts/measure-retained.mjs
+ create mode 100644 scripts/measure-speed.mjs
+
+diff --git a/package.json b/package.json
+index 93b2717..a1a40a8 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "data0",
+-  "version": "2.0.0",
++  "version": "2.0.1",
+   "description": "Reactive state management library",
+   "devDependencies": {
+     "@microsoft/api-extractor": "^7.38.5",
+diff --git a/scripts/measure-retained.mjs b/scripts/measure-retained.mjs
+new file mode 100644
+index 0000000..706bdae
+--- /dev/null
++++ b/scripts/measure-retained.mjs
+@@ -0,0 +1,62 @@
++// 逐对象“称重”：node --expose-gc scripts/measure-retained.mjs [dist path]
++// 测量 atom / LightBinding 风格 effect / computed / RxList 的 GC 后保留字节数
++import path from "node:path";
++import { pathToFileURL } from "node:url";
++
++const distPath = process.argv[2] || "./dist/data0.js";
++const data0 = await import(pathToFileURL(path.resolve(distPath)).href);
++const { atom, computed, RxList, ReactiveEffect } = data0;
++
++const N = 20000;
++
++function gcNow() {
++  global.gc();
++  global.gc();
++}
++
++function used() {
++  gcNow();
++  return process.memoryUsage().heapUsed;
++}
++
++function weigh(name, create) {
++  // 预热一次，排除首次隐藏类/IC 分配
++  let warm = new Array(100);
++  for (let i = 0; i < 100; i++) warm[i] = create(i);
++  warm = null;
++  const keep = new Array(N);
++  const before = used();
++  for (let i = 0; i < N; i++) keep[i] = create(i);
++  const after = used();
++  const perItem = (after - before) / N;
++  console.log(`${name.padEnd(44)} ${perItem.toFixed(1)}B/个`);
++  return keep; // 防止提前回收
++}
++
++class LightEffect extends ReactiveEffect {
++  constructor(update) {
++    super();
++    if (update) this.update = update;
++    this.active = true;
++  }
++  callGetter() {
++    return this.update(this);
++  }
++}
++
++const results = [];
++results.push(weigh("primitive atom(string)", (i) => atom(`label ${i}`)));
++results.push(weigh("primitive atom + 1 subscriber(track)", (i) => {
++  const a = atom(`label ${i}`);
++  const e = new LightEffect(() => a());
++  e.run();
++  return [a, e];
++}));
++results.push(weigh("LightEffect alone (no deps)", () => new LightEffect(() => {})));
++results.push(weigh("computed(atom dep)", (i) => {
++  const src = atom(i);
++  return [src, computed(() => src() + 1)];
++}));
++results.push(weigh("bare computed(no deps)", () => computed(() => 1)));
++results.push(weigh("RxList(empty)", () => new RxList([])));
++console.log("done", results.length);
+diff --git a/scripts/measure-speed.mjs b/scripts/measure-speed.mjs
+new file mode 100644
+index 0000000..6e75f44
+--- /dev/null
++++ b/scripts/measure-speed.mjs
+@@ -0,0 +1,79 @@
++// 速度对比：node scripts/measure-speed.mjs <dist path>
++// 覆盖最热路径：atom 读写、带订阅者的 trigger、effect 创建/销毁、RxList splice
++import path from "node:path";
++import { pathToFileURL } from "node:url";
++
++const distPath = process.argv[2] || "./dist/data0.js";
++const data0 = await import(pathToFileURL(path.resolve(distPath)).href);
++const { atom, RxList, ReactiveEffect, batch } = data0;
++
++class LightEffect extends ReactiveEffect {
++  constructor(update) {
++    super();
++    this.update = update;
++    this.active = true;
++  }
++  callGetter() {
++    return this.update(this);
++  }
++}
++
++function bench(name, iterations, fn) {
++  // warmup
++  fn(Math.min(iterations, 10000));
++  const start = process.hrtime.bigint();
++  fn(iterations);
++  const elapsed = Number(process.hrtime.bigint() - start) / 1e6;
++  console.log(`${name.padEnd(40)} ${elapsed.toFixed(1)}ms (${iterations} iter)`);
++}
++
++bench("atom write+read (1 subscriber)", 2_000_000, (n) => {
++  const a = atom(0);
++  let sink = 0;
++  const e = new LightEffect(() => { sink += a() });
++  e.run();
++  for (let i = 0; i < n; i++) a(i);
++  e.destroy();
++  return sink;
++});
++
++bench("atom read untracked", 5_000_000, (n) => {
++  const a = atom(1);
++  let sink = 0;
++  for (let i = 0; i < n; i++) sink += a.raw;
++  return sink;
++});
++
++bench("effect create+track+destroy", 200_000, (n) => {
++  const a = atom(0);
++  for (let i = 0; i < n; i++) {
++    const e = new LightEffect(() => a());
++    e.run();
++    e.destroy();
++  }
++});
++
++bench("RxList splice churn (1000 rows x 200)", 200, (n) => {
++  const list = new RxList([]);
++  const rows = Array.from({ length: 1000 }, (_, i) => ({ id: i }));
++  for (let i = 0; i < n; i++) {
++    list.splice(0, list.data.length, ...rows);
++    list.splice(0, list.data.length);
++  }
++  list.destroy();
++});
++
++bench("batch update 100 atoms x rounds", 20_000, (n) => {
++  const atoms = Array.from({ length: 100 }, () => atom(0));
++  const effects = atoms.map((a) => {
++    const e = new LightEffect(() => a());
++    e.run();
++    return e;
++  });
++  for (let i = 0; i < n; i++) {
++    batch(() => {
++      for (let k = 0; k < 100; k++) atoms[k](i + k);
++    });
++  }
++  effects.forEach((e) => e.destroy());
++});
+diff --git a/src/RxList.ts b/src/RxList.ts
+index e2f74b4..4e41c6a 100644
+--- a/src/RxList.ts
++++ b/src/RxList.ts
+@@ -91,7 +91,10 @@ export class RxList<T> extends Computed {
+     /**
+      * @internal
+      */
+-    indexKeyDeps = new Map<number, Dep>()
++    _indexKeyDeps?: Map<number, Dep>
++    get indexKeyDeps(): Map<number, Dep> {
++        return this._indexKeyDeps ?? (this._indexKeyDeps = new Map())
++    }
+     /**
+      * @internal
+      */
+@@ -130,7 +133,7 @@ export class RxList<T> extends Computed {
+     clear() {
+         const length = this.data.length
+         if (length === 0) return []
+-        const hasIndexKeyDeps = this.indexKeyDeps?.size > 0
++        const hasIndexKeyDeps = !!this._indexKeyDeps?.size
+         const hasAtomIndexes = !!this.atomIndexes
+         if (length === 1 || hasIndexKeyDeps || hasAtomIndexes) return this.splice(0, length)
+ 
+@@ -157,7 +160,7 @@ export class RxList<T> extends Computed {
+ 
+         const originLength = this.data.length
+         const deleteItemsCount = Math.min(deleteCount, originLength - start)
+-        const hasIndexKeyDeps = this.indexKeyDeps?.size > 0
++        const hasIndexKeyDeps = !!this._indexKeyDeps?.size
+         const hasAtomIndexes = !!this.atomIndexes
+         const canUseMetadataFastPath = !hasIndexKeyDeps && !hasAtomIndexes
+         const isPureAppend = start === originLength && deleteCount === 0
+@@ -236,7 +239,7 @@ export class RxList<T> extends Computed {
+         const originItemsInNewIndexes = newIndexes.map(index => this.data[index])
+         newIndexes.forEach((newIndex, i) => {
+             this.data[newIndex]= originItems[i]
+-            if (this.indexKeyDeps?.size) {
++            if (this._indexKeyDeps?.size) {
+                 this.trigger(this, TriggerOpTypes.SET, { key: newIndex, newValue: originItems[i], oldValue: originItemsInNewIndexes[i]})
+             }
+             if (oldIndexAtoms) {
+@@ -1154,7 +1157,7 @@ export class RxList<T> extends Computed {
+             this.destroyEffect(frame)
+           })
+         })
+-        this.indexKeyDeps.clear()
++        this._indexKeyDeps?.clear()
+         this.atomIndexes = undefined
+     }
+ 
+diff --git a/src/atom.ts b/src/atom.ts
+index e49da4b..360e97c 100644
+--- a/src/atom.ts
++++ b/src/atom.ts
+@@ -131,6 +131,30 @@ export function isPrimitiveAtom(r: unknown) {
+     return typeof r === 'function' && Object.prototype.hasOwnProperty.call(r, PRIMITIVE_ATOM_VALUE)
+ }
+ 
++// CAUTION 所有 primitive atom 共享同一个原型：raw 访问器、Symbol.toPrimitive、IS_ATOM 标记
++//  都放在原型上，每个 atom 实例只保留一个自有的值属性。
++//  旧实现对每个 atom 函数做 2 次 defineProperty + 2 次动态属性赋值，会把函数对象推进
++//  字典属性模式，每个 atom 多花约 3 倍内存；长列表里每行一个 atom 时是主要常驻开销之一。
++const primitiveAtomProto = Object.create(Function.prototype, {
++    raw: {
++        configurable: true,
++        enumerable: false,
++        get: getPrimitiveAtomRaw,
++    },
++    [Symbol.toPrimitive]: {
++        configurable: true,
++        writable: true,
++        enumerable: false,
++        value: primitiveAtomToPrimitive,
++    },
++    [ReactiveFlags.IS_ATOM]: {
++        configurable: false,
++        writable: false,
++        enumerable: false,
++        value: true,
++    },
++})
++
+ function createPrimitiveAtom<T>(initValue: T, name?: string) {
+     // CAUTION 只能这样写才能支持 arguments.length === 0 ，否则就永远不会 为 0
+     const updater = function(newValue?: T): T | void {
+@@ -146,19 +170,15 @@ function createPrimitiveAtom<T>(initValue: T, name?: string) {
+         Notifier.instance.triggerPrimitiveAtomValue(updater, { key: 'value', newValue, oldValue})
+     } as PrimitiveAtomUpdater<T>
+ 
++    // CAUTION setPrototypeOf 要在添加自有属性之前做，V8 对"先改原型再加属性"的对象
++    //  能保持 fast properties；值属性用普通赋值（symbol key，不污染 for...in/Object.keys）。
++    Object.setPrototypeOf(updater, primitiveAtomProto)
+     updater[PRIMITIVE_ATOM_VALUE] = initValue
+-    updater[Symbol.toPrimitive] = primitiveAtomToPrimitive
+-    Object.defineProperty(updater, 'raw', {
+-        configurable: true,
+-        enumerable: false,
+-        get: getPrimitiveAtomRaw
+-    })
+ 
+     if (name) {
+         setDebugName(updater, name)
+     }
+ 
+-    def(updater, ReactiveFlags.IS_ATOM, true)
+     return updater as unknown as Atom<T>
+ }
+ 
+diff --git a/src/computed.ts b/src/computed.ts
+index 38f5049..a57b9f4 100644
+--- a/src/computed.ts
++++ b/src/computed.ts
+@@ -112,15 +112,32 @@ export class Computed extends ReactiveEffect {
+     asyncStatus?: Atom<null | boolean | string>
+     status: Atom<StatusType>
+ 
+-    // status: Atom<StatusType> = atom(STATUS_CLEAN)
+-    triggerInfos: TriggerInfo[] = []
++    // CAUTION 下面的集合/atom 字段全部惰性分配：一个 Computed（以及继承它的 RxList/RxMap/RxSet）
++    //  原来无条件预分配 3 个数组、2 个 Set、1 个 WeakMap、1 个 Map、1 个 updatedAt atom，
++    //  每实例 ~1KB 的常驻内存，多数场景根本用不到。
++    _triggerInfos?: TriggerInfo[]
++    get triggerInfos(): TriggerInfo[] {
++        return this._triggerInfos ?? (this._triggerInfos = [])
++    }
+     scheduleRecompute?: DirtyCallback
+     // 用来 patch 模式下，收集新增和删除是产生的 effectFrames
+-    effectFramesArray: ReactiveEffect[][] = []
+-    keyToEffectFrames: WeakMap<any, ReactiveEffect[]> = new WeakMap()
++    _effectFramesArray?: ReactiveEffect[][]
++    get effectFramesArray(): ReactiveEffect[][] {
++        return this._effectFramesArray ?? (this._effectFramesArray = [])
++    }
++    _keyToEffectFrames?: WeakMap<any, ReactiveEffect[]>
++    get keyToEffectFrames(): WeakMap<any, ReactiveEffect[]> {
++        return this._keyToEffectFrames ?? (this._keyToEffectFrames = new WeakMap())
++    }
+     manualTracking = false
+-    public dirtyFromDeps= new Set<Computed>()
+-    public markedDirtyEffects: Set<Computed> = new Set()
++    _dirtyFromDeps?: Set<Computed>
++    public get dirtyFromDeps(): Set<Computed> {
++        return this._dirtyFromDeps ?? (this._dirtyFromDeps = new Set())
++    }
++    _markedDirtyEffects?: Set<Computed>
++    public get markedDirtyEffects(): Set<Computed> {
++        return this._markedDirtyEffects ?? (this._markedDirtyEffects = new Set())
++    }
+     // TODO 需要一个更好的约定
+     public get debugName() {
+         return getDebugName(this.data)
+@@ -131,7 +148,16 @@ export class Computed extends ReactiveEffect {
+     public isGeneratorGetter: boolean = false
+     public isAsyncPatch: boolean = false
+     public isGeneratorPatch: boolean = false
+-    public updatedAt: Atom<number|undefined> = atom(undefined)
++    // updatedAt 惰性化：时间戳先记在普通字段上，只有真正被读（想要响应式订阅）时才创建 atom
++    _updatedAtTime?: number
++    _updatedAt?: Atom<number|undefined>
++    public get updatedAt(): Atom<number|undefined> {
++        return this._updatedAt ?? (this._updatedAt = atom(this._updatedAtTime))
++    }
++    setUpdatedAt(time: number) {
++        this._updatedAtTime = time
++        if (this._updatedAt) this._updatedAt(time)
++    }
+     constructor(
+         public getter?: GetterType,
+         public applyPatch?: ApplyPatchType,
+@@ -220,7 +246,7 @@ export class Computed extends ReactiveEffect {
+         this.completeTracking(true)
+         return result
+     }
+-    callGeneratorGetter = (id:string) => {
++    callGeneratorGetter(id:string) {
+         const runEffectId = id
+         const getterContext = this.createGetterContext()
+         return this.runGenerator(
+@@ -248,12 +274,14 @@ export class Computed extends ReactiveEffect {
+     }
+ 
+     createGetterContext(): GetterContext | undefined {
++        // pauseCollectChild/resumeCollectChild 是原型方法，传给 context 时要 bind；
++        // 只有 getter 声明了参数才会走到这里，绑定成本只有用 context 的 computed 才付。
+         return (this.getter && this.getter?.length > 0) ? {
+             lastValue: this.data,
+             onCleanup: (fn: () => any) => this.lastCleanupFn = fn,
+             asyncStatus: this.asyncStatus!,
+-            pauseCollectChild: this.pauseCollectChild,
+-            resumeCollectChild: this.resumeCollectChild,
++            pauseCollectChild: this.pauseCollectChild.bind(this),
++            resumeCollectChild: this.resumeCollectChild.bind(this),
+         } : undefined
+     }
+ 
+@@ -264,7 +292,11 @@ export class Computed extends ReactiveEffect {
+ 
+ 
+     // 这是传递给外部 scheduleRecompute 的，用来代理 notify 上的 recursiveMarkDirty
+-    recursiveMarkDirty = () => {
++    _boundRecursiveMarkDirty?: () => void
++    get boundRecursiveMarkDirty() {
++        return this._boundRecursiveMarkDirty ?? (this._boundRecursiveMarkDirty = () => this.recursiveMarkDirty())
++    }
++    recursiveMarkDirty() {
+         // CAUTION Notifier.instance.getDepEffects 给的是去重的 Effect, 不然这里会触发多次无意义的 run
+         const depEffects = Notifier.instance.getDepEffects(this.trackClassInstance ? this: this.data)
+         if (!depEffects) return
+@@ -340,8 +372,8 @@ export class Computed extends ReactiveEffect {
+             //  例如在 autorun/once 里面可能会既依赖 computed, 产生了 computed 变化，用户自己系统通过这种方式达到一个平衡状态。
+             //   例如 不断将一个 pending list 中的数据取出来变成 processing。
+             //   这时候的第一次 run 会变成 clean，所以 schedule 的 recompute 一定要是 forceRecompute 才能继续执行。
+-            const recompute = (this.status.raw > STATUS_DIRTY && !this.isAsync) ? () => this.recompute(true) : this.recompute
+-            this.scheduleRecompute!(recompute, this.recursiveMarkDirty, [...this.triggerInfos])
++            const recompute = (this.status.raw > STATUS_DIRTY && !this.isAsync) ? () => this.recompute(true) : this.boundRecompute
++            this.scheduleRecompute!(recompute, this.boundRecursiveMarkDirty, [...(this._triggerInfos ?? [])])
+         }
+ 
+         // 如果不是已经开始重算或者立刻开始计算，那么从标记为脏也要创建 cleanPromise
+@@ -369,7 +401,7 @@ export class Computed extends ReactiveEffect {
+         const recomputeId = ++this.recomputeId
+         this.inPatch = false
+         // 每次 full recompute 清空所有的 triggerInfos，这样才能使 patchable recompute 不错乱。
+-        this.triggerInfos.length = 0
++        if (this._triggerInfos) this._triggerInfos.length = 0
+ 
+         this.prepareRecompute()
+         // 默认行为，重算并且重新收集依赖
+@@ -397,7 +429,7 @@ export class Computed extends ReactiveEffect {
+ 
+         this.replaceData(result)
+         this.status(STATUS_CLEAN)
+-        this.updatedAt(new Date().getTime())
++        this.setUpdatedAt(new Date().getTime())
+ 
+         if (this.applyPatch) {
+             this.phase = PATCH_PHASE
+@@ -428,7 +460,7 @@ export class Computed extends ReactiveEffect {
+         }
+         // explicit return false 说明出现了无法 patch 的情况，表示一定要重算
+         if (patchResult===false) {
+-            this.triggerInfos.length = 0
++            if (this._triggerInfos) this._triggerInfos.length = 0
+             this.inPatch = false
+             if (this.isAsync) {
+                 if (!this.cleanPromise) this.createCleanPromise()
+@@ -449,18 +481,22 @@ export class Computed extends ReactiveEffect {
+ 
+         this.inPatch = false
+         this.status(STATUS_CLEAN)
+-        this.updatedAt(new Date().getTime())
++        this.setUpdatedAt(new Date().getTime())
+         this.sendTriggerInfos()
+         this.dispatch('clean')
+         this.resolveCleanPromise?.()
+     }
+-    savedTriggerInfos: Parameters<Notifier["trigger"]>[] = []
++    _savedTriggerInfos?: Parameters<Notifier["trigger"]>[]
++    get savedTriggerInfos(): Parameters<Notifier["trigger"]>[] {
++        return this._savedTriggerInfos ?? (this._savedTriggerInfos = [])
++    }
+     trigger(...args: Parameters<Notifier["trigger"]>) {
+         this.savedTriggerInfos.push(args)
+     }
+     sendTriggerInfos() {
+-        const infos = [...this.savedTriggerInfos]
+-        this.savedTriggerInfos.length = 0
++        if (!this._savedTriggerInfos?.length) return
++        const infos = [...this._savedTriggerInfos]
++        this._savedTriggerInfos.length = 0
+         Notifier.instance.createEffectSession()
+         for(const info of infos) {
+             Notifier.instance.trigger(...info)
+@@ -468,7 +504,12 @@ export class Computed extends ReactiveEffect {
+         Notifier.instance.digestEffectSession()
+     }
+     // 由 this.run/onTrack/forceDirtyDepsRecompute 调用
+-    recompute = async (forceRecompute = false): Promise<any> => {
++    // CAUTION 原型方法 + 惰性 bound 版本（scheduleRecompute 需要脱离 this 调用）
++    _boundRecompute?: (forceRecompute?: boolean) => Promise<any>
++    get boundRecompute() {
++        return this._boundRecompute ?? (this._boundRecompute = (forceRecompute?: boolean) => this.recompute(forceRecompute))
++    }
++    async recompute(forceRecompute = false): Promise<any> {
+         if ((this.status.raw === STATUS_CLEAN && !forceRecompute) || !this.active) return
+ 
+         // 四种类型计算：
+@@ -567,7 +608,8 @@ export class Computed extends ReactiveEffect {
+         return this.deps.length > 0
+     }
+     // 给继承者在 apply catch 中用的 工具函数
+-    manualTrack = (target: object, type: TrackOpTypes, key: unknown) => {
++    // CAUTION 以下全部是原型方法（原来是每实例的箭头函数字段），调用点都是 this.xxx() 的方法调用
++    manualTrack(target: object, type: TrackOpTypes, key: unknown) {
+         Notifier.instance.enableTracking()
+         const dep = isPrimitiveAtom(target) && type === TrackOpTypes.ATOM && key === 'value'
+             ? Notifier.instance.trackPrimitiveAtomValue(target)
+@@ -575,13 +617,13 @@ export class Computed extends ReactiveEffect {
+         Notifier.instance.resetTracking()
+         return dep
+     }
+-    pauseAutoTrack = () => {
++    pauseAutoTrack() {
+         Notifier.instance.pauseTracking()
+     }
+-    autoTrack = () => {
++    autoTrack() {
+         Notifier.instance.enableTracking()
+     }
+-    resetAutoTrack = () => {
++    resetAutoTrack() {
+         Notifier.instance.resetTracking()
+     }
+     destroy(ignoreChildren = false) {
+@@ -590,14 +632,19 @@ export class Computed extends ReactiveEffect {
+         delete this.lastCleanupFn
+         super.destroy( ignoreChildren)
+     }
+-    collectEffect: () => () => CleanupFrame = ReactiveEffect.collectEffect
+-    destroyEffect = (effect: ReactiveEffect) => {
++    collectEffect(): () => CleanupFrame {
++        return ReactiveEffect.collectEffect()
++    }
++    destroyEffect(effect: ReactiveEffect) {
+         // 因为可能是 computed，destroy 和 ReactiveEffect 不一样，所以要调用它自己身的
+         effect.destroy()
+     }
+-    cachedValues = new Map<any, any>()
++    _cachedValues?: Map<any, any>
++    get cachedValues(): Map<any, any> {
++        return this._cachedValues ?? (this._cachedValues = new Map())
++    }
+     getCachedValue<T>(effect:any, createFn: () => T) : T{
+-        let value = this.cachedValues.get(effect)
++        let value = this._cachedValues?.get(effect)
+         if (!value) {
+             this.cachedValues.set(effect, value = createFn())
+         }
+diff --git a/src/notify.ts b/src/notify.ts
+index d7c71c9..c9bb917 100644
+--- a/src/notify.ts
++++ b/src/notify.ts
+@@ -139,11 +139,9 @@ export class Notifier {
+   getOrCreatePrimitiveAtomDep(target: object) {
+     let dep = this.getPrimitiveAtomDep(target)
+     if (!dep) {
+-      Object.defineProperty(target, PRIMITIVE_ATOM_DEP, {
+-        configurable: true,
+-        enumerable: false,
+-        value: dep = createCompactDep(),
+-      })
++      // CAUTION 普通赋值而不是 defineProperty：defineProperty 会把 atom 函数对象推进
++      //  字典属性模式（每个被订阅的 atom 多 ~200B）。symbol key 不会污染 for...in/Object.keys。
++      ;(target as PrimitiveAtomDepTarget)[PRIMITIVE_ATOM_DEP] = dep = createCompactDep()
+       trackRetainedPrimitiveAtomDepCreated(dep)
+     }
+     return dep
+diff --git a/src/reactiveEffect.ts b/src/reactiveEffect.ts
+index 80ad8ca..0fcdf0d 100644
+--- a/src/reactiveEffect.ts
++++ b/src/reactiveEffect.ts
+@@ -11,8 +11,11 @@ import {
+ 
+ export class ReactiveEffect extends ManualCleanup {
+     static activeScopes: ReactiveEffect[] = []
+-    public active = true
+-    public isRunningAsync = false
++    public active: boolean
++    // CAUTION isRunningAsync/useDepMarker/index/shouldCollectChild 的默认值放在原型上
++    //  （见 class 定义后的赋值），实例只在真正改写时才产生自有属性。
++    //  渲染框架里每个绑定都是一个 effect，这些"恒定默认值"的实例槽位在长列表下是可观的常驻内存。
++    declare public isRunningAsync: boolean
+     private _eventToCallbacks?: Map<string, Set<Function>>
+     private _asyncTracks?: Array<() => void>
+     private _children?: ReactiveEffect[]
+@@ -36,7 +39,8 @@ export class ReactiveEffect extends ManualCleanup {
+             }
+         }
+ 
+-        delete effect.parent
++        // CAUTION 赋值 undefined 而不是 delete：delete 会把对象推进字典属性模式
++        if (effect.parent !== undefined) effect.parent = undefined
+         if (!ignoreChildren) {
+             effect.destroyChildren()
+         } else if (effect._children) {
+@@ -47,16 +51,22 @@ export class ReactiveEffect extends ManualCleanup {
+ 
+     deps: Dep[] = []
+     // 有增量计算的情况会 manual track dep，这时不要做 dep marker，因为不需要 finalize 自动对比的计算的过程。
+-    useDepMarker = true
++    declare useDepMarker: boolean
+     parent?: ReactiveEffect
+-    index = 0
++    declare index: number
++    declare getter?: (...args: any[]) => any
+     isAsync?:boolean
+-    shouldCollectChild = true
+-    constructor(public getter?: (...args: any[]) => any) {
++    declare shouldCollectChild: boolean
++    constructor(getter?: (...args: any[]) => any) {
+         // 这是为了支持有的数据结构想写成 source/computed 都支持的情况，比如 RxList。它会继承 Computed
+         super();
++        // CAUTION getter/isAsync 只在有 getter 时才写实例属性：
++        //  轻量绑定 effect（无 getter）不为用不到的字段付槽位
++        if (getter !== undefined) {
++            this.getter = getter
++            this.isAsync = isAsync(getter) || isGenerator(getter)
++        }
+         this.active = !!getter
+-        this.isAsync = this.getter && (isAsync(this.getter!) || isGenerator(this.getter!))
+         if (this.active) trackRetainedReactiveEffectCreated(this)
+ 
+         if (ReactiveEffect.activeScopes.length) {
+@@ -97,10 +107,13 @@ export class ReactiveEffect extends ManualCleanup {
+     queueAsyncTrack(track: () => void) {
+         (this._asyncTracks ?? (this._asyncTracks = [])).push(track)
+     }
+-    pauseCollectChild = () => {
++    // CAUTION 原型方法而不是实例箭头函数：每个 effect 实例少 3 个闭包的常驻内存
++    //  （渲染框架里每个绑定就是一个 effect，长列表下这是可观的量）。
++    //  需要脱离 this 使用的地方（Computed.createGetterContext）自行 bind。
++    pauseCollectChild() {
+         this.shouldCollectChild = false
+     }
+-    resumeCollectChild = () => {
++    resumeCollectChild() {
+         this.shouldCollectChild = true
+     }
+ 
+@@ -118,7 +131,7 @@ export class ReactiveEffect extends ManualCleanup {
+             callbacks.delete(callback)
+         }
+     }
+-    dispatch = (event: string, ...args: any[]) => {
++    dispatch(event: string, ...args: any[]) {
+         const callbacks = this._eventToCallbacks?.get(event)
+         if (callbacks) {
+             callbacks.forEach(callback => callback.call(this, ...args))
+@@ -260,4 +273,10 @@ export class ReactiveEffect extends ManualCleanup {
+         }
+         return lastYieldValue
+     }
+-}
+\ No newline at end of file
++}
++
++// 恒定默认值放在原型上：实例只在真正改写时才产生自有属性（见类顶部 declare 说明）
++ReactiveEffect.prototype.isRunningAsync = false
++ReactiveEffect.prototype.useDepMarker = true
++ReactiveEffect.prototype.index = 0
++ReactiveEffect.prototype.shouldCollectChild = true
+\ No newline at end of file
+-- 
+2.43.0
+

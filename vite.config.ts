@@ -37,6 +37,7 @@ export default defineConfig({
       input: {
         main: path.resolve(__dirname, 'index.html'),
         realBrowserBenchmark: path.resolve(__dirname, 'real-browser-benchmark.html'),
+        memoryBenchmark: path.resolve(__dirname, 'memory-benchmark.html'),
       },
       output: {
         manualChunks: {
