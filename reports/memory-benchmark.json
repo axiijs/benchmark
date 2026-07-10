@@ -1,7 +1,7 @@
 {
   "versions": {
-    "axii": "4.4.1",
-    "data0": "2.3.0",
+    "axii": "4.4.1 (local ../axii dist @ 4d7ddd6)",
+    "data0": "2.3.0 (local ../data0 dist @ b27c491)",
     "react": "19.2.7",
     "react-dom": "19.2.7",
     "vue": "3.5.39",
@@ -9,7 +9,7 @@
   },
   "vanilla": {
     "framework": "vanilla",
-    "timestamp": "2026-07-10T09:52:36.157Z",
+    "timestamp": "2026-07-10T12:58:48.576Z",
     "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
     "settings": {
       "counts": [
@@ -31,12 +31,12 @@
           8384,
           8384,
           8384,
-          16104
+          18104
         ],
         "median": 8384,
         "min": 7812,
-        "max": 16104,
-        "mean": 9813.6
+        "max": 18104,
+        "mean": 10213.6
       },
       "1000": {
         "samples": [
@@ -96,28 +96,28 @@
         },
         "residualAfterClear": {
           "samples": [
+            1600,
             0,
             1600,
+            1600,
+            0
+          ],
+          "median": 1600,
+          "min": 0,
+          "max": 1600,
+          "mean": 960
+        },
+        "residualAfterRerender": {
+          "samples": [
+            1640,
+            0,
             0,
             1600,
             0
           ],
           "median": 0,
           "min": 0,
-          "max": 1600,
-          "mean": 640
-        },
-        "residualAfterRerender": {
-          "samples": [
-            40,
-            1600,
-            0,
-            1600,
-            0
-          ],
-          "median": 40,
-          "min": 0,
-          "max": 1600,
+          "max": 1640,
           "mean": 648
         }
       },
@@ -125,47 +125,47 @@
         "retained": {
           "samples": [
             107576,
-            107576,
+            136249,
             107752,
             107660,
             107608
           ],
-          "median": 107608,
+          "median": 107660,
           "min": 107576,
-          "max": 107752,
-          "mean": 107634.4
+          "max": 136249,
+          "mean": 113369
         },
         "residualAfterClear": {
           "samples": [
-            16000,
-            18000,
-            16176,
-            16084,
+            0,
+            30577,
+            176,
+            84,
             16048
           ],
-          "median": 16084,
-          "min": 16000,
-          "max": 18000,
-          "mean": 16461.6
+          "median": 176,
+          "min": 0,
+          "max": 30577,
+          "mean": 9377
         },
         "residualAfterRerender": {
           "samples": [
             0,
-            6112,
-            489700,
+            34689,
+            176,
             84,
             48
           ],
           "median": 84,
           "min": 0,
-          "max": 489700,
-          "mean": 99188.8
+          "max": 34689,
+          "mean": 6999.4
         }
       },
       "5000": {
         "retained": {
           "samples": [
-            539568,
+            539796,
             539568,
             539568,
             539568,
@@ -173,34 +173,34 @@
           ],
           "median": 539568,
           "min": 539568,
-          "max": 539568,
-          "mean": 539568
+          "max": 539796,
+          "mean": 539613.6
         },
         "residualAfterClear": {
           "samples": [
+            268,
             0,
-            40,
             0,
             0,
             0
           ],
           "median": 0,
           "min": 0,
-          "max": 40,
-          "mean": 8
+          "max": 268,
+          "mean": 53.6
         },
         "residualAfterRerender": {
           "samples": [
+            268,
             0,
-            40,
             0,
             0,
             0
           ],
           "median": 0,
           "min": 0,
-          "max": 40,
-          "mean": 8
+          "max": 268,
+          "mean": 53.6
         }
       },
       "10000": {
@@ -300,7 +300,1131 @@
   },
   "axii": {
     "framework": "axii",
-    "timestamp": "2026-07-10T09:52:38.591Z",
+    "timestamp": "2026-07-10T12:58:51.250Z",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+    "settings": {
+      "counts": [
+        100,
+        1000,
+        5000,
+        10000
+      ],
+      "retainedIterations": 5,
+      "leakCycles": 30,
+      "leakCount": 1000,
+      "updateRounds": 100,
+      "updateBatch": 100
+    },
+    "dataOnly": {
+      "100": {
+        "samples": [
+          7812,
+          8384,
+          8384,
+          8384,
+          18104
+        ],
+        "median": 8384,
+        "min": 7812,
+        "max": 18104,
+        "mean": 10213.6
+      },
+      "1000": {
+        "samples": [
+          152992,
+          87584,
+          87584,
+          87648,
+          87584
+        ],
+        "median": 87584,
+        "min": 87584,
+        "max": 152992,
+        "mean": 100678.4
+      },
+      "5000": {
+        "samples": [
+          439708,
+          439576,
+          439688,
+          439576,
+          439576
+        ],
+        "median": 439576,
+        "min": 439576,
+        "max": 439708,
+        "mean": 439624.8
+      },
+      "10000": {
+        "samples": [
+          879568,
+          879568,
+          879568,
+          879568,
+          879568
+        ],
+        "median": 879568,
+        "min": 879568,
+        "max": 879568,
+        "mean": 879568
+      }
+    },
+    "mountBytes": 117898,
+    "retained": {
+      "100": {
+        "retained": {
+          "samples": [
+            75240,
+            51476,
+            48192,
+            54004,
+            43780
+          ],
+          "median": 51476,
+          "min": 43780,
+          "max": 75240,
+          "mean": 54538.4
+        },
+        "residualAfterClear": {
+          "samples": [
+            53804,
+            12976,
+            4788,
+            10456,
+            5376
+          ],
+          "median": 10456,
+          "min": 4788,
+          "max": 53804,
+          "mean": 17480
+        },
+        "residualAfterRerender": {
+          "samples": [
+            48604,
+            12976,
+            4804,
+            10456,
+            176
+          ],
+          "median": 10456,
+          "min": 176,
+          "max": 48604,
+          "mean": 15403.2
+        }
+      },
+      "1000": {
+        "retained": {
+          "samples": [
+            475376,
+            442792,
+            436384,
+            436500,
+            436212
+          ],
+          "median": 436500,
+          "min": 436212,
+          "max": 475376,
+          "mean": 445452.8
+        },
+        "residualAfterClear": {
+          "samples": [
+            46580,
+            4608,
+            288,
+            336,
+            496
+          ],
+          "median": 496,
+          "min": 288,
+          "max": 46580,
+          "mean": 10461.6
+        },
+        "residualAfterRerender": {
+          "samples": [
+            535932,
+            4608,
+            288,
+            336,
+            496
+          ],
+          "median": 496,
+          "min": 288,
+          "max": 535932,
+          "mean": 108332
+        }
+      },
+      "5000": {
+        "retained": {
+          "samples": [
+            2174396,
+            2184724,
+            2201344,
+            2180248,
+            2181880
+          ],
+          "median": 2181880,
+          "min": 2174396,
+          "max": 2201344,
+          "mean": 2184518.4
+        },
+        "residualAfterClear": {
+          "samples": [
+            5800,
+            644,
+            15624,
+            -92,
+            1540
+          ],
+          "median": 1540,
+          "min": -92,
+          "max": 15624,
+          "mean": 4703.2
+        },
+        "residualAfterRerender": {
+          "samples": [
+            5800,
+            644,
+            15624,
+            -92,
+            1540
+          ],
+          "median": 1540,
+          "min": -92,
+          "max": 15624,
+          "mean": 4703.2
+        }
+      },
+      "10000": {
+        "retained": {
+          "samples": [
+            4312804,
+            4310508,
+            4306572,
+            4307940,
+            4301396
+          ],
+          "median": 4307940,
+          "min": 4301396,
+          "max": 4312804,
+          "mean": 4307844
+        },
+        "residualAfterClear": {
+          "samples": [
+            -9716,
+            20640,
+            -1424,
+            612,
+            372
+          ],
+          "median": 372,
+          "min": -9716,
+          "max": 20640,
+          "mean": 2096.8
+        },
+        "residualAfterRerender": {
+          "samples": [
+            -9716,
+            15652,
+            -1424,
+            612,
+            372
+          ],
+          "median": 372,
+          "min": -9716,
+          "max": 15652,
+          "mean": 1099.2
+        }
+      }
+    },
+    "leakCycles": {
+      "cycles": 30,
+      "count": 1000,
+      "growthBytes": 7748
+    },
+    "updateChurn": {
+      "rounds": 100,
+      "batch": 100,
+      "listSize": 1000,
+      "growthBytes": 24112
+    },
+    "componentTree": {
+      "100": {
+        "samples": [
+          102299,
+          65924,
+          76316,
+          66424,
+          68376
+        ],
+        "median": 68376,
+        "min": 65924,
+        "max": 102299,
+        "mean": 75867.8
+      },
+      "1000": {
+        "samples": [
+          706557,
+          624476,
+          651264,
+          625400,
+          660756
+        ],
+        "median": 651264,
+        "min": 624476,
+        "max": 706557,
+        "mean": 653690.6
+      },
+      "5000": {
+        "samples": [
+          3404850,
+          3155796,
+          3171328,
+          3161652,
+          3158868
+        ],
+        "median": 3161652,
+        "min": 3155796,
+        "max": 3404850,
+        "mean": 3210498.8
+      }
+    }
+  },
+  "axii-atom": {
+    "framework": "axii-atom",
+    "timestamp": "2026-07-10T12:58:54.332Z",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+    "settings": {
+      "counts": [
+        100,
+        1000,
+        5000,
+        10000
+      ],
+      "retainedIterations": 5,
+      "leakCycles": 30,
+      "leakCount": 1000,
+      "updateRounds": 100,
+      "updateBatch": 100
+    },
+    "dataOnly": {
+      "100": {
+        "samples": [
+          7812,
+          8384,
+          8384,
+          8384,
+          18104
+        ],
+        "median": 8384,
+        "min": 7812,
+        "max": 18104,
+        "mean": 10213.6
+      },
+      "1000": {
+        "samples": [
+          152992,
+          87584,
+          87584,
+          87648,
+          87584
+        ],
+        "median": 87584,
+        "min": 87584,
+        "max": 152992,
+        "mean": 100678.4
+      },
+      "5000": {
+        "samples": [
+          439708,
+          439576,
+          439688,
+          439576,
+          439576
+        ],
+        "median": 439576,
+        "min": 439576,
+        "max": 439708,
+        "mean": 439624.8
+      },
+      "10000": {
+        "samples": [
+          879568,
+          879568,
+          879568,
+          879568,
+          879568
+        ],
+        "median": 879568,
+        "min": 879568,
+        "max": 879568,
+        "mean": 879568
+      }
+    },
+    "mountBytes": 117898,
+    "retained": {
+      "100": {
+        "retained": {
+          "samples": [
+            56472,
+            46316,
+            36964,
+            44280,
+            36964
+          ],
+          "median": 44280,
+          "min": 36964,
+          "max": 56472,
+          "mean": 44199.2
+        },
+        "residualAfterClear": {
+          "samples": [
+            40524,
+            13048,
+            13320,
+            7548,
+            176
+          ],
+          "median": 13048,
+          "min": 176,
+          "max": 40524,
+          "mean": 14923.2
+        },
+        "residualAfterRerender": {
+          "samples": [
+            35324,
+            7848,
+            13336,
+            7548,
+            176
+          ],
+          "median": 7848,
+          "min": 176,
+          "max": 35324,
+          "mean": 12846.4
+        }
+      },
+      "1000": {
+        "retained": {
+          "samples": [
+            411328,
+            366944,
+            364768,
+            364884,
+            364636
+          ],
+          "median": 364884,
+          "min": 364636,
+          "max": 411328,
+          "mean": 374512
+        },
+        "residualAfterClear": {
+          "samples": [
+            520000,
+            3284,
+            288,
+            7236,
+            6560
+          ],
+          "median": 6560,
+          "min": 288,
+          "max": 520000,
+          "mean": 107473.6
+        },
+        "residualAfterRerender": {
+          "samples": [
+            548501,
+            3284,
+            288,
+            7236,
+            6560
+          ],
+          "median": 6560,
+          "min": 288,
+          "max": 548501,
+          "mean": 113173.8
+        }
+      },
+      "5000": {
+        "retained": {
+          "samples": [
+            1821220,
+            1829804,
+            1867896,
+            1823904,
+            1825924
+          ],
+          "median": 1825924,
+          "min": 1821220,
+          "max": 1867896,
+          "mean": 1833749.6
+        },
+        "residualAfterClear": {
+          "samples": [
+            7788,
+            296,
+            44860,
+            1748,
+            -144
+          ],
+          "median": 1748,
+          "min": -144,
+          "max": 44860,
+          "mean": 10909.6
+        },
+        "residualAfterRerender": {
+          "samples": [
+            7788,
+            296,
+            2344,
+            1748,
+            -144
+          ],
+          "median": 1748,
+          "min": -144,
+          "max": 7788,
+          "mean": 2406.4
+        }
+      },
+      "10000": {
+        "retained": {
+          "samples": [
+            3623180,
+            3624800,
+            3606612,
+            3620484,
+            3605468
+          ],
+          "median": 3620484,
+          "min": 3605468,
+          "max": 3624800,
+          "mean": 3616108.8
+        },
+        "residualAfterClear": {
+          "samples": [
+            -8636,
+            61736,
+            -896,
+            1172,
+            -732
+          ],
+          "median": -732,
+          "min": -8636,
+          "max": 61736,
+          "mean": 10528.8
+        },
+        "residualAfterRerender": {
+          "samples": [
+            -8636,
+            13348,
+            -896,
+            1172,
+            -732
+          ],
+          "median": -732,
+          "min": -8636,
+          "max": 13348,
+          "mean": 851.2
+        }
+      }
+    },
+    "leakCycles": {
+      "cycles": 30,
+      "count": 1000,
+      "growthBytes": 9716
+    },
+    "updateChurn": {
+      "rounds": 100,
+      "batch": 100,
+      "listSize": 1000,
+      "growthBytes": 37064
+    },
+    "componentTree": null
+  },
+  "axii-static": {
+    "framework": "axii-static",
+    "timestamp": "2026-07-10T12:58:56.446Z",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+    "settings": {
+      "counts": [
+        100,
+        1000,
+        5000,
+        10000
+      ],
+      "retainedIterations": 5,
+      "leakCycles": 30,
+      "leakCount": 1000,
+      "updateRounds": 100,
+      "updateBatch": 100
+    },
+    "dataOnly": {
+      "100": {
+        "samples": [
+          7812,
+          8384,
+          8384,
+          8384,
+          18104
+        ],
+        "median": 8384,
+        "min": 7812,
+        "max": 18104,
+        "mean": 10213.6
+      },
+      "1000": {
+        "samples": [
+          152992,
+          87584,
+          87584,
+          87648,
+          87584
+        ],
+        "median": 87584,
+        "min": 87584,
+        "max": 152992,
+        "mean": 100678.4
+      },
+      "5000": {
+        "samples": [
+          439708,
+          439576,
+          439688,
+          439576,
+          439576
+        ],
+        "median": 439576,
+        "min": 439576,
+        "max": 439708,
+        "mean": 439624.8
+      },
+      "10000": {
+        "samples": [
+          879568,
+          879568,
+          879568,
+          879568,
+          879568
+        ],
+        "median": 879568,
+        "min": 879568,
+        "max": 879568,
+        "mean": 879568
+      }
+    },
+    "mountBytes": 117898,
+    "retained": {
+      "100": {
+        "retained": {
+          "samples": [
+            30580,
+            27208,
+            16296,
+            23956,
+            16272
+          ],
+          "median": 23956,
+          "min": 16272,
+          "max": 30580,
+          "mean": 22862.4
+        },
+        "residualAfterClear": {
+          "samples": [
+            32848,
+            12708,
+            16400,
+            8008,
+            1868
+          ],
+          "median": 12708,
+          "min": 1868,
+          "max": 32848,
+          "mean": 14366.4
+        },
+        "residualAfterRerender": {
+          "samples": [
+            32848,
+            11108,
+            16416,
+            8008,
+            268
+          ],
+          "median": 11108,
+          "min": 268,
+          "max": 32848,
+          "mean": 13729.6
+        }
+      },
+      "1000": {
+        "retained": {
+          "samples": [
+            176448,
+            649592,
+            160368,
+            165644,
+            160212
+          ],
+          "median": 165644,
+          "min": 160212,
+          "max": 649592,
+          "mean": 262452.8
+        },
+        "residualAfterClear": {
+          "samples": [
+            17348,
+            534129,
+            16272,
+            5480,
+            6520
+          ],
+          "median": 16272,
+          "min": 5480,
+          "max": 534129,
+          "mean": 115949.8
+        },
+        "residualAfterRerender": {
+          "samples": [
+            17376,
+            518129,
+            272,
+            5480,
+            6520
+          ],
+          "median": 6520,
+          "min": 272,
+          "max": 518129,
+          "mean": 109555.4
+        }
+      },
+      "5000": {
+        "retained": {
+          "samples": [
+            800740,
+            799544,
+            817516,
+            801240,
+            800172
+          ],
+          "median": 800740,
+          "min": 799544,
+          "max": 817516,
+          "mean": 803842.4
+        },
+        "residualAfterClear": {
+          "samples": [
+            11832,
+            -4540,
+            8696,
+            -1468,
+            0
+          ],
+          "median": 0,
+          "min": -4540,
+          "max": 11832,
+          "mean": 2904
+        },
+        "residualAfterRerender": {
+          "samples": [
+            11832,
+            -4540,
+            8696,
+            -1468,
+            0
+          ],
+          "median": 0,
+          "min": -4540,
+          "max": 11832,
+          "mean": 2904
+        }
+      },
+      "10000": {
+        "retained": {
+          "samples": [
+            1551844,
+            1554304,
+            1549244,
+            1548968,
+            1546244
+          ],
+          "median": 1549244,
+          "min": 1546244,
+          "max": 1554304,
+          "mean": 1550120.8
+        },
+        "residualAfterClear": {
+          "samples": [
+            -10284,
+            17364,
+            212,
+            -92,
+            464
+          ],
+          "median": 212,
+          "min": -10284,
+          "max": 17364,
+          "mean": 1532.8
+        },
+        "residualAfterRerender": {
+          "samples": [
+            -10284,
+            17364,
+            212,
+            -92,
+            464
+          ],
+          "median": 212,
+          "min": -10284,
+          "max": 17364,
+          "mean": 1532.8
+        }
+      }
+    },
+    "leakCycles": {
+      "cycles": 30,
+      "count": 1000,
+      "growthBytes": 7372
+    },
+    "updateChurn": {
+      "rounds": 100,
+      "batch": 100,
+      "listSize": 1000,
+      "growthBytes": 126932
+    },
+    "componentTree": {
+      "100": {
+        "samples": [
+          119583,
+          71916,
+          76216,
+          53672,
+          68932
+        ],
+        "median": 71916,
+        "min": 53672,
+        "max": 119583,
+        "mean": 78063.8
+      },
+      "1000": {
+        "samples": [
+          755753,
+          618980,
+          631128,
+          645364,
+          623416
+        ],
+        "median": 631128,
+        "min": 618980,
+        "max": 755753,
+        "mean": 654928.2
+      },
+      "5000": {
+        "samples": [
+          3356902,
+          3105524,
+          3143664,
+          3130752,
+          3107496
+        ],
+        "median": 3130752,
+        "min": 3105524,
+        "max": 3356902,
+        "mean": 3168867.6
+      }
+    }
+  },
+  "react": {
+    "framework": "react",
+    "timestamp": "2026-07-10T12:59:01.017Z",
+    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+    "settings": {
+      "counts": [
+        100,
+        1000,
+        5000,
+        10000
+      ],
+      "retainedIterations": 5,
+      "leakCycles": 30,
+      "leakCount": 1000,
+      "updateRounds": 100,
+      "updateBatch": 100
+    },
+    "dataOnly": {
+      "100": {
+        "samples": [
+          7812,
+          8384,
+          8384,
+          8384,
+          18104
+        ],
+        "median": 8384,
+        "min": 7812,
+        "max": 18104,
+        "mean": 10213.6
+      },
+      "1000": {
+        "samples": [
+          152992,
+          87584,
+          87584,
+          87648,
+          87584
+        ],
+        "median": 87584,
+        "min": 87584,
+        "max": 152992,
+        "mean": 100678.4
+      },
+      "5000": {
+        "samples": [
+          439708,
+          439576,
+          439688,
+          439576,
+          439576
+        ],
+        "median": 439576,
+        "min": 439576,
+        "max": 439708,
+        "mean": 439624.8
+      },
+      "10000": {
+        "samples": [
+          879568,
+          879568,
+          879568,
+          879568,
+          879568
+        ],
+        "median": 879568,
+        "min": 879568,
+        "max": 879568,
+        "mean": 879568
+      }
+    },
+    "mountBytes": 108054,
+    "retained": {
+      "100": {
+        "retained": {
+          "samples": [
+            -72608,
+            83884,
+            28780,
+            28780,
+            28780
+          ],
+          "median": 28780,
+          "min": -72608,
+          "max": 83884,
+          "mean": 19523.2
+        },
+        "residualAfterClear": {
+          "samples": [
+            -68548,
+            100516,
+            38036,
+            23592,
+            31824
+          ],
+          "median": 31824,
+          "min": -68548,
+          "max": 100516,
+          "mean": 25084
+        },
+        "residualAfterRerender": {
+          "samples": [
+            -80740,
+            79972,
+            11268,
+            11220,
+            19452
+          ],
+          "median": 11268,
+          "min": -80740,
+          "max": 79972,
+          "mean": 8234.4
+        }
+      },
+      "1000": {
+        "retained": {
+          "samples": [
+            339092,
+            313740,
+            306032,
+            305996,
+            306052
+          ],
+          "median": 306052,
+          "min": 305996,
+          "max": 339092,
+          "mean": 314182.4
+        },
+        "residualAfterClear": {
+          "samples": [
+            775098,
+            267604,
+            259536,
+            251852,
+            251456
+          ],
+          "median": 259536,
+          "min": 251456,
+          "max": 775098,
+          "mean": 361109.2
+        },
+        "residualAfterRerender": {
+          "samples": [
+            679035,
+            140016,
+            131948,
+            124244,
+            123848
+          ],
+          "median": 131948,
+          "min": 123848,
+          "max": 679035,
+          "mean": 239818.2
+        }
+      },
+      "5000": {
+        "retained": {
+          "samples": [
+            1539248,
+            1538464,
+            1543292,
+            1536776,
+            1539220
+          ],
+          "median": 1539220,
+          "min": 1536776,
+          "max": 1543292,
+          "mean": 1539400
+        },
+        "residualAfterClear": {
+          "samples": [
+            1266636,
+            1265992,
+            1271944,
+            1264384,
+            1266952
+          ],
+          "median": 1266636,
+          "min": 1264384,
+          "max": 1271944,
+          "mean": 1267181.6
+        },
+        "residualAfterRerender": {
+          "samples": [
+            627036,
+            626428,
+            632344,
+            624784,
+            627352
+          ],
+          "median": 627036,
+          "min": 624784,
+          "max": 632344,
+          "mean": 627588.8
+        }
+      },
+      "10000": {
+        "retained": {
+          "samples": [
+            3078512,
+            3080312,
+            3078012,
+            3077964,
+            3077964
+          ],
+          "median": 3078012,
+          "min": 3077964,
+          "max": 3080312,
+          "mean": 3078552.8
+        },
+        "residualAfterClear": {
+          "samples": [
+            2519984,
+            2521692,
+            2519540,
+            2519436,
+            2523924
+          ],
+          "median": 2519984,
+          "min": 2519436,
+          "max": 2523924,
+          "mean": 2520915.2
+        },
+        "residualAfterRerender": {
+          "samples": [
+            1239744,
+            1242136,
+            1239948,
+            1239844,
+            1244332
+          ],
+          "median": 1239948,
+          "min": 1239744,
+          "max": 1244332,
+          "mean": 1241200.8
+        }
+      }
+    },
+    "leakCycles": {
+      "cycles": 30,
+      "count": 1000,
+      "growthBytes": 280608
+    },
+    "updateChurn": {
+      "rounds": 100,
+      "batch": 100,
+      "listSize": 1000,
+      "growthBytes": 100980
+    },
+    "componentTree": {
+      "100": {
+        "samples": [
+          114937,
+          91508,
+          93000,
+          93652,
+          91520
+        ],
+        "median": 93000,
+        "min": 91508,
+        "max": 114937,
+        "mean": 96923.4
+      },
+      "1000": {
+        "samples": [
+          879505,
+          813420,
+          824648,
+          820512,
+          830624
+        ],
+        "median": 824648,
+        "min": 813420,
+        "max": 879505,
+        "mean": 833741.8
+      },
+      "5000": {
+        "samples": [
+          4289694,
+          4056424,
+          4058768,
+          4053012,
+          4058672
+        ],
+        "median": 4058672,
+        "min": 4053012,
+        "max": 4289694,
+        "mean": 4103314
+      }
+    }
+  },
+  "vue": {
+    "framework": "vue",
+    "timestamp": "2026-07-10T12:59:05.196Z",
     "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
     "settings": {
       "counts": [
@@ -358,1130 +1482,6 @@
       "10000": {
         "samples": [
           879568,
-          881568,
-          879568,
-          879568,
-          879568
-        ],
-        "median": 879568,
-        "min": 879568,
-        "max": 881568,
-        "mean": 879968
-      }
-    },
-    "mountBytes": 117730,
-    "retained": {
-      "100": {
-        "retained": {
-          "samples": [
-            92700,
-            71528,
-            68228,
-            74056,
-            63832
-          ],
-          "median": 71528,
-          "min": 63832,
-          "max": 92700,
-          "mean": 74068.8
-        },
-        "residualAfterClear": {
-          "samples": [
-            50712,
-            7776,
-            9972,
-            15656,
-            176
-          ],
-          "median": 9972,
-          "min": 176,
-          "max": 50712,
-          "mean": 16858.4
-        },
-        "residualAfterRerender": {
-          "samples": [
-            45512,
-            7776,
-            4788,
-            15656,
-            176
-          ],
-          "median": 7776,
-          "min": 176,
-          "max": 45512,
-          "mean": 14781.6
-        }
-      },
-      "1000": {
-        "retained": {
-          "samples": [
-            677108,
-            639060,
-            653208,
-            636552,
-            636264
-          ],
-          "median": 639060,
-          "min": 636264,
-          "max": 677108,
-          "mean": 648438.4
-        },
-        "residualAfterClear": {
-          "samples": [
-            48452,
-            3732,
-            80877,
-            52336,
-            268
-          ],
-          "median": 48452,
-          "min": 268,
-          "max": 80877,
-          "mean": 37133
-        },
-        "residualAfterRerender": {
-          "samples": [
-            48480,
-            3732,
-            28877,
-            336,
-            268
-          ],
-          "median": 3732,
-          "min": 268,
-          "max": 48480,
-          "mean": 16338.6
-        }
-      },
-      "5000": {
-        "retained": {
-          "samples": [
-            3174472,
-            3184868,
-            3204712,
-            3180196,
-            3180336
-          ],
-          "median": 3180336,
-          "min": 3174472,
-          "max": 3204712,
-          "mean": 3184916.8
-        },
-        "residualAfterClear": {
-          "samples": [
-            12336,
-            580,
-            17892,
-            -140,
-            0
-          ],
-          "median": 580,
-          "min": -140,
-          "max": 17892,
-          "mean": 6133.6
-        },
-        "residualAfterRerender": {
-          "samples": [
-            12336,
-            580,
-            17892,
-            -140,
-            0
-          ],
-          "median": 580,
-          "min": -140,
-          "max": 17892,
-          "mean": 6133.6
-        }
-      },
-      "10000": {
-        "retained": {
-          "samples": [
-            6311948,
-            6313560,
-            6300420,
-            6313212,
-            6300576
-          ],
-          "median": 6311948,
-          "min": 6300420,
-          "max": 6313560,
-          "mean": 6307943.2
-        },
-        "residualAfterClear": {
-          "samples": [
-            -9760,
-            15848,
-            180,
-            356,
-            360
-          ],
-          "median": 356,
-          "min": -9760,
-          "max": 15848,
-          "mean": 1396.8
-        },
-        "residualAfterRerender": {
-          "samples": [
-            -9760,
-            15848,
-            180,
-            356,
-            360
-          ],
-          "median": 356,
-          "min": -9760,
-          "max": 15848,
-          "mean": 1396.8
-        }
-      }
-    },
-    "leakCycles": {
-      "cycles": 30,
-      "count": 1000,
-      "growthBytes": 8264
-    },
-    "updateChurn": {
-      "rounds": 100,
-      "batch": 100,
-      "listSize": 1000,
-      "growthBytes": 22396
-    },
-    "componentTree": {
-      "100": {
-        "samples": [
-          130131,
-          94236,
-          104564,
-          94672,
-          94656
-        ],
-        "median": 94672,
-        "min": 94236,
-        "max": 130131,
-        "mean": 103651.8
-      },
-      "1000": {
-        "samples": [
-          987473,
-          904976,
-          931640,
-          905964,
-          941552
-        ],
-        "median": 931640,
-        "min": 904976,
-        "max": 987473,
-        "mean": 934321
-      },
-      "5000": {
-        "samples": [
-          4804378,
-          4553092,
-          4571764,
-          4566548,
-          4560532
-        ],
-        "median": 4566548,
-        "min": 4553092,
-        "max": 4804378,
-        "mean": 4611262.8
-      }
-    }
-  },
-  "axii-atom": {
-    "framework": "axii-atom",
-    "timestamp": "2026-07-10T09:52:41.501Z",
-    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
-    "settings": {
-      "counts": [
-        100,
-        1000,
-        5000,
-        10000
-      ],
-      "retainedIterations": 5,
-      "leakCycles": 30,
-      "leakCount": 1000,
-      "updateRounds": 100,
-      "updateBatch": 100
-    },
-    "dataOnly": {
-      "100": {
-        "samples": [
-          7812,
-          8384,
-          8384,
-          8384,
-          18104
-        ],
-        "median": 8384,
-        "min": 7812,
-        "max": 18104,
-        "mean": 10213.6
-      },
-      "1000": {
-        "samples": [
-          152992,
-          87584,
-          87584,
-          87648,
-          87584
-        ],
-        "median": 87584,
-        "min": 87584,
-        "max": 152992,
-        "mean": 100678.4
-      },
-      "5000": {
-        "samples": [
-          439708,
-          439576,
-          439688,
-          439576,
-          439576
-        ],
-        "median": 439576,
-        "min": 439576,
-        "max": 439708,
-        "mean": 439624.8
-      },
-      "10000": {
-        "samples": [
-          879568,
-          879568,
-          879568,
-          879568,
-          879568
-        ],
-        "median": 879568,
-        "min": 879568,
-        "max": 879568,
-        "mean": 879568
-      }
-    },
-    "mountBytes": 117730,
-    "retained": {
-      "100": {
-        "retained": {
-          "samples": [
-            78664,
-            64660,
-            56964,
-            64280,
-            56964
-          ],
-          "median": 64280,
-          "min": 56964,
-          "max": 78664,
-          "mean": 64306.4
-        },
-        "residualAfterClear": {
-          "samples": [
-            36492,
-            7776,
-            13176,
-            7548,
-            5376
-          ],
-          "median": 7776,
-          "min": 5376,
-          "max": 36492,
-          "mean": 14073.6
-        },
-        "residualAfterRerender": {
-          "samples": [
-            36492,
-            7776,
-            7992,
-            7548,
-            176
-          ],
-          "median": 7776,
-          "min": 176,
-          "max": 36492,
-          "mean": 11996.8
-        }
-      },
-      "1000": {
-        "retained": {
-          "samples": [
-            609144,
-            570244,
-            564680,
-            564884,
-            564596
-          ],
-          "median": 564884,
-          "min": 564596,
-          "max": 609144,
-          "mean": 574709.6
-        },
-        "residualAfterClear": {
-          "samples": [
-            31168,
-            3932,
-            200,
-            52336,
-            268
-          ],
-          "median": 3932,
-          "min": 200,
-          "max": 52336,
-          "mean": 17580.8
-        },
-        "residualAfterRerender": {
-          "samples": [
-            31196,
-            493264,
-            200,
-            336,
-            268
-          ],
-          "median": 336,
-          "min": 200,
-          "max": 493264,
-          "mean": 105052.8
-        }
-      },
-      "5000": {
-        "retained": {
-          "samples": [
-            2821884,
-            2825044,
-            2863964,
-            2822568,
-            2826640
-          ],
-          "median": 2825044,
-          "min": 2821884,
-          "max": 2863964,
-          "mean": 2832020
-        },
-        "residualAfterClear": {
-          "samples": [
-            14980,
-            536,
-            42428,
-            124,
-            1576
-          ],
-          "median": 1576,
-          "min": 124,
-          "max": 42428,
-          "mean": 11928.8
-        },
-        "residualAfterRerender": {
-          "samples": [
-            14980,
-            536,
-            1020,
-            124,
-            1576
-          ],
-          "median": 1020,
-          "min": 124,
-          "max": 14980,
-          "mean": 3647.2
-        }
-      },
-      "10000": {
-        "retained": {
-          "samples": [
-            5621372,
-            5631268,
-            5595784,
-            5617344,
-            5604088
-          ],
-          "median": 5617344,
-          "min": 5595784,
-          "max": 5631268,
-          "mean": 5613971.2
-        },
-        "residualAfterClear": {
-          "samples": [
-            -8720,
-            66228,
-            -1660,
-            620,
-            -1372
-          ],
-          "median": -1372,
-          "min": -8720,
-          "max": 66228,
-          "mean": 11019.2
-        },
-        "residualAfterRerender": {
-          "samples": [
-            -8720,
-            13168,
-            -1660,
-            620,
-            -1372
-          ],
-          "median": -1372,
-          "min": -8720,
-          "max": 13168,
-          "mean": 407.2
-        }
-      }
-    },
-    "leakCycles": {
-      "cycles": 30,
-      "count": 1000,
-      "growthBytes": 12368
-    },
-    "updateChurn": {
-      "rounds": 100,
-      "batch": 100,
-      "listSize": 1000,
-      "growthBytes": 32072
-    },
-    "componentTree": null
-  },
-  "axii-static": {
-    "framework": "axii-static",
-    "timestamp": "2026-07-10T09:52:43.518Z",
-    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
-    "settings": {
-      "counts": [
-        100,
-        1000,
-        5000,
-        10000
-      ],
-      "retainedIterations": 5,
-      "leakCycles": 30,
-      "leakCount": 1000,
-      "updateRounds": 100,
-      "updateBatch": 100
-    },
-    "dataOnly": {
-      "100": {
-        "samples": [
-          7812,
-          8384,
-          8384,
-          8384,
-          16104
-        ],
-        "median": 8384,
-        "min": 7812,
-        "max": 16104,
-        "mean": 9813.6
-      },
-      "1000": {
-        "samples": [
-          152992,
-          87584,
-          87584,
-          87648,
-          87584
-        ],
-        "median": 87584,
-        "min": 87584,
-        "max": 152992,
-        "mean": 100678.4
-      },
-      "5000": {
-        "samples": [
-          439708,
-          439576,
-          439688,
-          439576,
-          439576
-        ],
-        "median": 439576,
-        "min": 439576,
-        "max": 439708,
-        "mean": 439624.8
-      },
-      "10000": {
-        "samples": [
-          879568,
-          879568,
-          879568,
-          879568,
-          879568
-        ],
-        "median": 879568,
-        "min": 879568,
-        "max": 879568,
-        "mean": 879568
-      }
-    },
-    "mountBytes": 117730,
-    "retained": {
-      "100": {
-        "retained": {
-          "samples": [
-            35788,
-            30008,
-            19096,
-            26756,
-            19072
-          ],
-          "median": 26756,
-          "min": 19072,
-          "max": 35788,
-          "mean": 26144
-        },
-        "residualAfterClear": {
-          "samples": [
-            33868,
-            12708,
-            14800,
-            9608,
-            1868
-          ],
-          "median": 12708,
-          "min": 1868,
-          "max": 33868,
-          "mean": 14570.4
-        },
-        "residualAfterRerender": {
-          "samples": [
-            33868,
-            11108,
-            14816,
-            8008,
-            1868
-          ],
-          "median": 11108,
-          "min": 1868,
-          "max": 33868,
-          "mean": 13933.6
-        }
-      },
-      "1000": {
-        "retained": {
-          "samples": [
-            204448,
-            190272,
-            677724,
-            193596,
-            188260
-          ],
-          "median": 193596,
-          "min": 188260,
-          "max": 677724,
-          "mean": 290860
-        },
-        "residualAfterClear": {
-          "samples": [
-            17348,
-            340,
-            518133,
-            5432,
-            6568
-          ],
-          "median": 6568,
-          "min": 340,
-          "max": 518133,
-          "mean": 109564.2
-        },
-        "residualAfterRerender": {
-          "samples": [
-            17376,
-            340,
-            518133,
-            5432,
-            6568
-          ],
-          "median": 6568,
-          "min": 340,
-          "max": 518133,
-          "mean": 109569.8
-        }
-      },
-      "5000": {
-        "retained": {
-          "samples": [
-            940512,
-            939620,
-            946308,
-            941896,
-            940308
-          ],
-          "median": 940512,
-          "min": 939620,
-          "max": 946308,
-          "mean": 941728.8
-        },
-        "residualAfterClear": {
-          "samples": [
-            11600,
-            -4640,
-            16016,
-            1612,
-            24
-          ],
-          "median": 1612,
-          "min": -4640,
-          "max": 16016,
-          "mean": 4922.4
-        },
-        "residualAfterRerender": {
-          "samples": [
-            11828,
-            -4640,
-            8864,
-            1612,
-            24
-          ],
-          "median": 1612,
-          "min": -4640,
-          "max": 11828,
-          "mean": 3537.6
-        }
-      },
-      "10000": {
-        "retained": {
-          "samples": [
-            1828020,
-            1833728,
-            1827220,
-            1823840,
-            1822948
-          ],
-          "median": 1827220,
-          "min": 1822948,
-          "max": 1833728,
-          "mean": 1827151.2
-        },
-        "residualAfterClear": {
-          "samples": [
-            -5452,
-            15856,
-            8428,
-            16,
-            500
-          ],
-          "median": 500,
-          "min": -5452,
-          "max": 15856,
-          "mean": 3869.6
-        },
-        "residualAfterRerender": {
-          "samples": [
-            -10356,
-            15856,
-            236,
-            16,
-            500
-          ],
-          "median": 236,
-          "min": -10356,
-          "max": 15856,
-          "mean": 1250.4
-        }
-      }
-    },
-    "leakCycles": {
-      "cycles": 30,
-      "count": 1000,
-      "growthBytes": 7208
-    },
-    "updateChurn": {
-      "rounds": 100,
-      "batch": 100,
-      "listSize": 1000,
-      "growthBytes": 127012
-    },
-    "componentTree": {
-      "100": {
-        "samples": [
-          143407,
-          88900,
-          98164,
-          93492,
-          96756
-        ],
-        "median": 96756,
-        "min": 88900,
-        "max": 143407,
-        "mean": 104143.8
-      },
-      "1000": {
-        "samples": [
-          1036437,
-          899396,
-          905864,
-          926868,
-          898192
-        ],
-        "median": 905864,
-        "min": 898192,
-        "max": 1036437,
-        "mean": 933351.4
-      },
-      "5000": {
-        "samples": [
-          4752090,
-          4503636,
-          4538752,
-          4528164,
-          4503416
-        ],
-        "median": 4528164,
-        "min": 4503416,
-        "max": 4752090,
-        "mean": 4565211.6
-      }
-    }
-  },
-  "react": {
-    "framework": "react",
-    "timestamp": "2026-07-10T09:52:47.941Z",
-    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
-    "settings": {
-      "counts": [
-        100,
-        1000,
-        5000,
-        10000
-      ],
-      "retainedIterations": 5,
-      "leakCycles": 30,
-      "leakCount": 1000,
-      "updateRounds": 100,
-      "updateBatch": 100
-    },
-    "dataOnly": {
-      "100": {
-        "samples": [
-          7812,
-          8384,
-          8384,
-          8384,
-          18104
-        ],
-        "median": 8384,
-        "min": 7812,
-        "max": 18104,
-        "mean": 10213.6
-      },
-      "1000": {
-        "samples": [
-          152992,
-          87584,
-          87584,
-          87648,
-          87584
-        ],
-        "median": 87584,
-        "min": 87584,
-        "max": 152992,
-        "mean": 100678.4
-      },
-      "5000": {
-        "samples": [
-          439708,
-          439576,
-          439688,
-          439576,
-          439576
-        ],
-        "median": 439576,
-        "min": 439576,
-        "max": 439708,
-        "mean": 439624.8
-      },
-      "10000": {
-        "samples": [
-          879568,
-          881568,
-          879568,
-          879568,
-          879568
-        ],
-        "median": 879568,
-        "min": 879568,
-        "max": 881568,
-        "mean": 879968
-      }
-    },
-    "mountBytes": 108058,
-    "retained": {
-      "100": {
-        "retained": {
-          "samples": [
-            -72592,
-            83884,
-            28780,
-            28780,
-            28780
-          ],
-          "median": 28780,
-          "min": -72592,
-          "max": 83884,
-          "mean": 19526.4
-        },
-        "residualAfterClear": {
-          "samples": [
-            -68532,
-            100532,
-            38052,
-            23580,
-            46292
-          ],
-          "median": 38052,
-          "min": -68532,
-          "max": 100532,
-          "mean": 27984.8
-        },
-        "residualAfterRerender": {
-          "samples": [
-            -80724,
-            79972,
-            25708,
-            11208,
-            19464
-          ],
-          "median": 19464,
-          "min": -80724,
-          "max": 79972,
-          "mean": 11125.6
-        }
-      },
-      "1000": {
-        "retained": {
-          "samples": [
-            339124,
-            313740,
-            320868,
-            305996,
-            306012
-          ],
-          "median": 313740,
-          "min": 305996,
-          "max": 339124,
-          "mean": 317148
-        },
-        "residualAfterClear": {
-          "samples": [
-            429948,
-            267604,
-            288065,
-            251816,
-            251380
-          ],
-          "median": 267604,
-          "min": 251380,
-          "max": 429948,
-          "mean": 297762.6
-        },
-        "residualAfterRerender": {
-          "samples": [
-            161372,
-            140016,
-            160461,
-            124244,
-            123808
-          ],
-          "median": 140016,
-          "min": 123808,
-          "max": 161372,
-          "mean": 141980.2
-        }
-      },
-      "5000": {
-        "retained": {
-          "samples": [
-            1539248,
-            1538464,
-            1543332,
-            1536776,
-            1539220
-          ],
-          "median": 1539220,
-          "min": 1536776,
-          "max": 1543332,
-          "mean": 1539408
-        },
-        "residualAfterClear": {
-          "samples": [
-            1266904,
-            1266084,
-            1271928,
-            1264396,
-            1266940
-          ],
-          "median": 1266904,
-          "min": 1264396,
-          "max": 1271928,
-          "mean": 1267250.4
-        },
-        "residualAfterRerender": {
-          "samples": [
-            627304,
-            626484,
-            632328,
-            624796,
-            627340
-          ],
-          "median": 627304,
-          "min": 624796,
-          "max": 632328,
-          "mean": 627650.4
-        }
-      },
-      "10000": {
-        "retained": {
-          "samples": [
-            3078520,
-            3080312,
-            3077964,
-            3077964,
-            3078036
-          ],
-          "median": 3078036,
-          "min": 3077964,
-          "max": 3080312,
-          "mean": 3078559.2
-        },
-        "residualAfterClear": {
-          "samples": [
-            2519980,
-            2521784,
-            2519448,
-            2519436,
-            2523996
-          ],
-          "median": 2519980,
-          "min": 2519436,
-          "max": 2523996,
-          "mean": 2520928.8
-        },
-        "residualAfterRerender": {
-          "samples": [
-            1239776,
-            1242192,
-            1239856,
-            1239844,
-            1244404
-          ],
-          "median": 1239856,
-          "min": 1239776,
-          "max": 1244404,
-          "mean": 1241214.4
-        }
-      }
-    },
-    "leakCycles": {
-      "cycles": 30,
-      "count": 1000,
-      "growthBytes": 280664
-    },
-    "updateChurn": {
-      "rounds": 100,
-      "batch": 100,
-      "listSize": 1000,
-      "growthBytes": 100936
-    },
-    "componentTree": {
-      "100": {
-        "samples": [
-          114937,
-          91508,
-          49576,
-          93652,
-          91520
-        ],
-        "median": 91520,
-        "min": 49576,
-        "max": 114937,
-        "mean": 88238.6
-      },
-      "1000": {
-        "samples": [
-          879505,
-          813420,
-          824576,
-          820512,
-          830624
-        ],
-        "median": 824576,
-        "min": 813420,
-        "max": 879505,
-        "mean": 833727.4
-      },
-      "5000": {
-        "samples": [
-          4289730,
-          4053556,
-          4061696,
-          4053012,
-          4058672
-        ],
-        "median": 4058672,
-        "min": 4053012,
-        "max": 4289730,
-        "mean": 4103333.2
-      }
-    }
-  },
-  "vue": {
-    "framework": "vue",
-    "timestamp": "2026-07-10T09:52:51.875Z",
-    "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
-    "settings": {
-      "counts": [
-        100,
-        1000,
-        5000,
-        10000
-      ],
-      "retainedIterations": 5,
-      "leakCycles": 30,
-      "leakCount": 1000,
-      "updateRounds": 100,
-      "updateBatch": 100
-    },
-    "dataOnly": {
-      "100": {
-        "samples": [
-          7812,
-          8384,
-          8384,
-          8384,
-          18104
-        ],
-        "median": 8384,
-        "min": 7812,
-        "max": 18104,
-        "mean": 10213.6
-      },
-      "1000": {
-        "samples": [
-          152992,
-          87584,
-          87584,
-          87648,
-          87584
-        ],
-        "median": 87584,
-        "min": 87584,
-        "max": 152992,
-        "mean": 100678.4
-      },
-      "5000": {
-        "samples": [
-          439708,
-          439576,
-          439688,
-          439576,
-          439576
-        ],
-        "median": 439576,
-        "min": 439576,
-        "max": 439708,
-        "mean": 439624.8
-      },
-      "10000": {
-        "samples": [
-          879568,
           879568,
           879568,
           879568,
@@ -1500,87 +1500,87 @@
           "samples": [
             54876,
             76764,
-            63368,
+            63328,
             53352,
             53956
           ],
           "median": 54876,
           "min": 53352,
           "max": 76764,
-          "mean": 60463.2
+          "mean": 60455.2
         },
         "residualAfterClear": {
           "samples": [
             15984,
             40264,
-            10468,
+            12028,
             1600,
             604
           ],
-          "median": 10468,
+          "median": 12028,
           "min": 604,
           "max": 40264,
-          "mean": 13784
+          "mean": 14096
         },
         "residualAfterRerender": {
           "samples": [
-            17812,
-            40504,
-            10512,
-            0,
+            17788,
+            38904,
+            10472,
+            1600,
             604
           ],
-          "median": 10512,
-          "min": 0,
-          "max": 40504,
-          "mean": 13886.4
+          "median": 10472,
+          "min": 604,
+          "max": 38904,
+          "mean": 13873.6
         }
       },
       "1000": {
         "retained": {
           "samples": [
             557164,
-            536960,
-            552124,
-            536940,
+            1026332,
+            537348,
+            536920,
             536936
           ],
-          "median": 536960,
-          "min": 536936,
-          "max": 557164,
-          "mean": 544024.8
+          "median": 537348,
+          "min": 536920,
+          "max": 1026332,
+          "mean": 638940
         },
         "residualAfterClear": {
           "samples": [
             20260,
-            6844,
-            45001,
-            16036,
+            540749,
+            444,
+            16,
             48
           ],
-          "median": 16036,
-          "min": 48,
-          "max": 45001,
-          "mean": 17637.8
+          "median": 444,
+          "min": 16,
+          "max": 540749,
+          "mean": 112303.4
         },
         "residualAfterRerender": {
           "samples": [
             20260,
-            6844,
-            39077,
-            36,
+            524749,
+            10304,
+            16,
             48
           ],
-          "median": 6844,
-          "min": 36,
-          "max": 39077,
-          "mean": 13253
+          "median": 10304,
+          "min": 16,
+          "max": 524749,
+          "mean": 111075.4
         }
       },
       "5000": {
         "retained": {
           "samples": [
-            2792472,
+            2792544,
             2687352,
             2699708,
             2687128,
@@ -1588,12 +1588,12 @@
           ],
           "median": 2687352,
           "min": 2687128,
-          "max": 2792472,
-          "mean": 2710757.6
+          "max": 2792544,
+          "mean": 2710772
         },
         "residualAfterClear": {
           "samples": [
-            105496,
+            105300,
             224,
             15508,
             0,
@@ -1601,21 +1601,21 @@
           ],
           "median": 224,
           "min": 0,
-          "max": 105496,
-          "mean": 24245.6
+          "max": 105300,
+          "mean": 24206.4
         },
         "residualAfterRerender": {
           "samples": [
-            105496,
-            120,
+            105300,
+            156,
             15508,
             0,
             0
           ],
-          "median": 120,
+          "median": 156,
           "min": 0,
-          "max": 105496,
-          "mean": 24224.8
+          "max": 105300,
+          "mean": 24192.8
         }
       },
       "10000": {
@@ -1663,59 +1663,59 @@
     "leakCycles": {
       "cycles": 30,
       "count": 1000,
-      "growthBytes": 795540
+      "growthBytes": 795880
     },
     "updateChurn": {
       "rounds": 100,
       "batch": 100,
       "listSize": 1000,
-      "growthBytes": 35864
+      "growthBytes": 35420
     },
     "componentTree": {
       "100": {
         "samples": [
           245833,
-          195884,
+          196316,
           209992,
           200272,
-          201708
+          206524
         ],
-        "median": 201708,
-        "min": 195884,
+        "median": 206524,
+        "min": 196316,
         "max": 245833,
-        "mean": 210737.8
+        "mean": 211787.4
       },
       "1000": {
         "samples": [
-          2004185,
-          1897796,
-          1903344,
+          2001329,
+          1901812,
+          1903988,
           1907048,
           1907572
         ],
         "median": 1907048,
-        "min": 1897796,
-        "max": 2004185,
-        "mean": 1923989
+        "min": 1901812,
+        "max": 2001329,
+        "mean": 1924349.8
       },
       "5000": {
         "samples": [
-          9623734,
+          9623650,
           9323220,
-          9368608,
-          9339256,
-          9332900
+          9367200,
+          9340784,
+          9332816
         ],
-        "median": 9339256,
+        "median": 9340784,
         "min": 9323220,
-        "max": 9623734,
-        "mean": 9397543.6
+        "max": 9623650,
+        "mean": 9397534
       }
     }
   },
   "solid": {
     "framework": "solid",
-    "timestamp": "2026-07-10T09:52:54.856Z",
+    "timestamp": "2026-07-10T12:59:08.372Z",
     "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
     "settings": {
       "counts": [
@@ -1733,16 +1733,16 @@
     "dataOnly": {
       "100": {
         "samples": [
-          7812,
+          7860,
           8384,
           8384,
           8384,
-          18104
+          -408620
         ],
         "median": 8384,
-        "min": 7812,
-        "max": 18104,
-        "mean": 10213.6
+        "min": -408620,
+        "max": 8384,
+        "mean": -75121.6
       },
       "1000": {
         "samples": [
@@ -1802,28 +1802,28 @@
         },
         "residualAfterClear": {
           "samples": [
-            16140,
-            372,
+            14540,
+            1972,
             1712,
+            0,
+            0
+          ],
+          "median": 1712,
+          "min": 0,
+          "max": 14540,
+          "mean": 3644.8
+        },
+        "residualAfterRerender": {
+          "samples": [
+            14580,
+            372,
+            1740,
             0,
             0
           ],
           "median": 372,
           "min": 0,
-          "max": 16140,
-          "mean": 3644.8
-        },
-        "residualAfterRerender": {
-          "samples": [
-            16180,
-            372,
-            140,
-            0,
-            0
-          ],
-          "median": 140,
-          "min": 0,
-          "max": 16180,
+          "max": 14580,
           "mean": 3338.4
         }
       },
@@ -1831,47 +1831,47 @@
         "retained": {
           "samples": [
             115468,
-            108708,
-            135661,
+            108612,
+            108760,
             108708,
             116080
           ],
-          "median": 115468,
-          "min": 108708,
-          "max": 135661,
-          "mean": 116925
+          "median": 108760,
+          "min": 108612,
+          "max": 116080,
+          "mean": 111525.6
         },
         "residualAfterClear": {
           "samples": [
-            23040,
-            0,
-            26929,
+            7004,
+            -96,
+            52,
             0,
             7388
           ],
-          "median": 7388,
-          "min": 0,
-          "max": 26929,
-          "mean": 11471.4
+          "median": 52,
+          "min": -96,
+          "max": 7388,
+          "mean": 2869.6
         },
         "residualAfterRerender": {
           "samples": [
-            11180,
-            0,
-            26929,
+            500736,
+            -96,
+            52,
             0,
             7388
           ],
-          "median": 7388,
-          "min": 0,
-          "max": 26929,
-          "mean": 9099.4
+          "median": 52,
+          "min": -96,
+          "max": 500736,
+          "mean": 101616
         }
       },
       "5000": {
         "retained": {
           "samples": [
-            546212,
+            546440,
             546212,
             545492,
             546212,
@@ -1879,12 +1879,12 @@
           ],
           "median": 546212,
           "min": 545492,
-          "max": 546212,
-          "mean": 546068
+          "max": 546440,
+          "mean": 546113.6
         },
         "residualAfterClear": {
           "samples": [
-            228,
+            268,
             0,
             -720,
             844,
@@ -1893,7 +1893,7 @@
           "median": 0,
           "min": -720,
           "max": 844,
-          "mean": 70.4
+          "mean": 78.4
         },
         "residualAfterRerender": {
           "samples": [
@@ -1969,16 +1969,16 @@
           29460,
           29404,
           29404,
-          37256
+          42072
         ],
         "median": 29460,
         "min": 29404,
         "max": 61130,
-        "mean": 37330.8
+        "mean": 38294
       },
       "1000": {
         "samples": [
-          373069,
+          375309,
           291372,
           293336,
           289968,
@@ -1986,8 +1986,8 @@
         ],
         "median": 291372,
         "min": 289904,
-        "max": 373069,
-        "mean": 307529.8
+        "max": 375309,
+        "mean": 307977.8
       },
       "5000": {
         "samples": [
@@ -2006,7 +2006,7 @@
   },
   "solid-signal": {
     "framework": "solid-signal",
-    "timestamp": "2026-07-10T09:52:57.504Z",
+    "timestamp": "2026-07-10T12:59:11.127Z",
     "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
     "settings": {
       "counts": [
@@ -2024,16 +2024,16 @@
     "dataOnly": {
       "100": {
         "samples": [
-          7812,
+          7860,
           8384,
           8384,
           8384,
-          18104
+          16104
         ],
         "median": 8384,
-        "min": 7812,
-        "max": 18104,
-        "mean": 10213.6
+        "min": 7860,
+        "max": 16104,
+        "mean": 9823.2
       },
       "1000": {
         "samples": [
@@ -2052,8 +2052,8 @@
         "samples": [
           439708,
           439576,
-          439576,
           439688,
+          439576,
           439576
         ],
         "median": 439576,
@@ -2080,124 +2080,124 @@
       "100": {
         "retained": {
           "samples": [
-            46988,
+            49448,
             48876,
             48720,
             48720,
-            50760
+            48720
           ],
           "median": 48720,
-          "min": 46988,
-          "max": 50760,
-          "mean": 48812.8
+          "min": 48720,
+          "max": 49448,
+          "mean": 48896.8
         },
         "residualAfterClear": {
           "samples": [
-            976,
+            2904,
             7584,
             1712,
-            0,
-            3640
+            1600,
+            0
           ],
           "median": 1712,
           "min": 0,
           "max": 7584,
-          "mean": 2782.4
+          "mean": 2760
         },
         "residualAfterRerender": {
           "samples": [
-            1016,
+            4156,
             7584,
-            1740,
-            0,
-            2040
+            140,
+            1600,
+            0
           ],
-          "median": 1740,
+          "median": 1600,
           "min": 0,
           "max": 7584,
-          "mean": 2476
+          "mean": 2696
         }
       },
       "1000": {
         "retained": {
           "samples": [
-            506952,
-            490068,
+            506956,
+            517041,
             490136,
             490084,
             497500
           ],
-          "median": 490136,
-          "min": 490068,
-          "max": 506952,
-          "mean": 494948
+          "median": 497500,
+          "min": 490084,
+          "max": 517041,
+          "mean": 500343.4
         },
         "residualAfterClear": {
           "samples": [
-            17128,
-            0,
-            489704,
+            21468,
+            26877,
+            68,
             16,
             7448
           ],
           "median": 7448,
-          "min": 0,
-          "max": 489704,
-          "mean": 102859.2
+          "min": 16,
+          "max": 26877,
+          "mean": 11175.4
         },
         "residualAfterRerender": {
           "samples": [
-            21232,
-            0,
-            516677,
+            21236,
+            26877,
+            68,
             16,
             7448
           ],
           "median": 7448,
-          "min": 0,
-          "max": 516677,
-          "mean": 109074.6
+          "min": 16,
+          "max": 26877,
+          "mean": 11129
         }
       },
       "5000": {
         "retained": {
           "samples": [
-            2452940,
-            2453844,
+            2452984,
+            2453804,
             2460388,
             2453804,
             2453804
           ],
           "median": 2453804,
-          "min": 2452940,
+          "min": 2452984,
           "max": 2460388,
-          "mean": 2454956
+          "mean": 2454956.8
         },
         "residualAfterClear": {
           "samples": [
-            -832,
-            56,
-            6052,
-            876,
-            48
-          ],
-          "median": 56,
-          "min": -832,
-          "max": 6052,
-          "mean": 1240
-        },
-        "residualAfterRerender": {
-          "samples": [
-            -604,
-            40,
+            -820,
+            0,
             6052,
             844,
             0
           ],
-          "median": 40,
-          "min": -604,
+          "median": 0,
+          "min": -820,
           "max": 6052,
-          "mean": 1266.4
+          "mean": 1215.2
+        },
+        "residualAfterRerender": {
+          "samples": [
+            -820,
+            0,
+            6052,
+            844,
+            0
+          ],
+          "median": 0,
+          "min": -820,
+          "max": 6052,
+          "mean": 1215.2
         }
       },
       "10000": {
@@ -2207,36 +2207,36 @@
             4881584,
             4881100,
             4881584,
-            4881036
+            4881052
           ],
           "median": 4881584,
-          "min": 4881036,
+          "min": 4881052,
           "max": 4881696,
-          "mean": 4881400
+          "mean": 4881403.2
         },
         "residualAfterClear": {
           "samples": [
-            128,
-            16,
-            64,
+            112,
+            0,
             48,
-            -16
+            0,
+            0
           ],
-          "median": 48,
-          "min": -16,
-          "max": 128,
-          "mean": 48
+          "median": 0,
+          "min": 0,
+          "max": 112,
+          "mean": 32
         },
         "residualAfterRerender": {
           "samples": [
-            -664,
-            16,
+            -648,
+            0,
             48,
-            16,
-            -16
+            0,
+            0
           ],
-          "median": 16,
-          "min": -664,
+          "median": 0,
+          "min": -648,
           "max": 48,
           "mean": -120
         }
@@ -2245,7 +2245,7 @@
     "leakCycles": {
       "cycles": 30,
       "count": 1000,
-      "growthBytes": 16452
+      "growthBytes": 16428
     },
     "updateChurn": {
       "rounds": 100,

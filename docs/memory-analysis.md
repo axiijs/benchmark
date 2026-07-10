@@ -2,6 +2,12 @@
 
 生成时间：2026-07-05。所有数据来自本仓库 `npm run benchmark:memory`（`scripts/run-memory-benchmark.js` + `src/memory-benchmark.js`）的真实测量，非模拟数据。
 
+> **更新（2026-07-10）**：第三轮深度 review 完成（见文末「十、第三轮深度 review 与优化」）。
+> 在已发布的 axii 4.4.1 + data0 2.3.0 基础上：细粒度行 642B → **440B**（-31%，
+> 低于 solid-signal 的 490B 与 Vue 的 537B），atom 行 565B → **367B**，静态行
+> 194B → **166B**，组件实例 913B → **652B**（-29%，比 React 的 825B 轻 21%）。
+> 速度全面持平或更快（fine-grained create -18%），清理卫生指标不变（全部归零）。
+
 > **更新（2026-07-05）**：基于本报告第七节的优化建议，axii 侧已完成一轮内存优化
 > （axii 仓库分支 `cursor/memory-optimization-90a2`），本文各表为**优化前**的原始数据，
 > 优化后的对比见文末「八、优化落地后的实测结果」。摘要：细粒度行 973B → 678B（-30%），
@@ -251,6 +257,119 @@ data0 的每绑定"atom+dep+effect"结构从 926B 压到 621B 后，剩余与 So
 Solid 则把订阅内联在 signal/computation 两个对象的数组里。再往下压需要改变依赖图的数据
 结构本身，属于收益递减的大改动。
 
+## 十、第三轮深度 review 与优化（2026-07-10）
+
+前两轮落地后（axii 4.4.1 + data0 2.3.0 均已发布），实测基线为：细粒度行 ~640B、
+atom 行 565B、静态行 194B、组件 ~915B。本轮用堆快照对每行保留对象逐一"点名"
+（`npm run heap:snapshot` + 自写的快照 diff/持有者归因脚本），发现剩余开销里有
+一大半不是架构性的，而是 V8 层面的分配细节。改动以 patch 形式随本仓库提交
+（`patches/axii-memory-optimization-round3.patch`、
+`patches/data0-memory-optimization-round3.patch`，也在两仓库的
+`cursor/memory-deep-review-c784` 本地分支上）。
+
+### 每行保留对象的逐项归因（1000 行细粒度列表，优化前）
+
+| 对象 | 每行字节 | 问题 |
+| --- | ---: | --- |
+| `FunctionHost.deps` 数组 | 92B | `deps = []` 后第一次 push 使 V8 把 elements store 直接扩到容量 17（0+0/2+16），单 dep 绑定浪费 64B |
+| 每 child 克隆的 `pathContext` + `LinkedNode` + PropertyArray | ~60B | 文本绑定从不消费 hostPath，纯属预付 |
+| `elementPath` 数组（每行内容相同的 `[0]`） | 28B | 同一模板位置在每行重复分配 |
+| `reactiveHosts` 包装数组（单 child） | 28B | 一元素一绑定是典型形态，数组多余 |
+| atom updater 自引用闭包的 Context | 20B | 闭包变量自引用，每 atom 一个只装自己的 Context |
+| 元素 host 的 PropertyArray | 20B | `collectRefHandles/collectDetachStyledChildren` 无条件赋 undefined，把 host 推出 in-object 容量 |
+| `RxList.map(skipItemEffect)` 的空 frame 数组 | 16B | 每行分配 `[]` 占位，内容恒为空 |
+| 属性绑定（dynamic-attr 场景）：闭包 + Context | ~50B/绑定 | 闭包捕获 el/key/value/path/isSVG/host 六个变量 |
+
+### 改动清单
+
+data0（`cursor/memory-deep-review-c784`，5 commits）：
+
+1. **`ReactiveEffect.deps` 惰性且精确容量**：初始指向共享 frozen 空数组哨兵，第一次
+   track 经由新的 `addDep` 换成容量恰好为 1 的 `[dep]` 字面量。单 dep effect 92B→28B；
+   从未 track 到依赖的 effect 零数组分配。
+2. **primitive atom 改为命名函数表达式（NFE）自引用**：函数体不再捕获创建期变量，
+   每 atom 少一个专属 Context（~20B）。
+3. **`Computed` 可选构造参数不再用参数属性**：applyPatch/callbacks/skipIndicator/
+   preventEffectSession 有值才赋，默认值放原型（每 computed 少 ~4 个 undefined 槽位）。
+4. **`RxList.map({skipItemEffect:true})` 复用共享 frozen 空 frame**，不再逐行分配 `[]`。
+
+axii（`cursor/memory-deep-review-c784`，3 commits）：
+
+1. **atom/函数 child 不再克隆 pathContext**：文本绑定共享父元素 host 的 context，
+   位置信息（owner + elementPath + debugSource）放进一个 3 字段 position 对象；
+   函数节点渲染出结构内容时才由 `childPathContext()` 惰性物化出与旧实现逐字段等价的
+   完整链。省掉每绑定的 clone + LinkedNode + 隐藏 PropertyArray（~60B）。
+2. **响应式属性绑定子类化**（`ReactiveAttributeEffect`）：字段进实例槽位，替代
+   「LightBindingEffect + 六变量闭包 + Context」（每属性绑定 ~50B）。
+3. **`collectRefHandles/collectDetachStyledChildren` 只在有值时赋值**：无条件写
+   undefined 曾把每个元素 host 推出 in-object 容量（每行一个 ~20B PropertyArray）。
+4. **`reactiveHosts`/`attrEffects` 单个时直接存对象**（数组只在多 child/attr 时出现），
+   并在构造器显式预置 undefined 保住 in-object 槽位。
+5. **小 elementPath 驻留池**：≤3 段的 path 数组按内容驻留（上限 4096 条防御性回退），
+   全列表同一模板位置共享一份。
+6. **ComponentHost**：name 变 getter；ref/__this 有值才赋；render 完成后把 inputProps
+   换成共享空对象，让 JSX 调用点的 props 对象可被回收。
+
+### data0 微基准（node --expose-gc，GC 后保留字节/对象，同机同脚本）
+
+| 对象 | 2.3.0 | 优化后 |
+| --- | ---: | ---: |
+| primitive atom(string) | 176B | **136B** (-23%) |
+| atom + 1 订阅者（含 dep/track 记账） | 620B | **452B** (-27%) |
+| 轻量绑定 effect（无依赖） | 136B | **104B** (-24%) |
+| computed（含上游 atom） | 946B | **707B** (-25%) |
+| 空 RxList | 274B | **226B** (-18%) |
+
+热路径速度（`measure-speed.mjs`，进程内交替 A/B 取中位数）全部持平或更快：
+atom 写+读 -7%，effect 创建/销毁 -3%，RxList splice churn、RxMap 建删、batch 更新
+均在噪声内持平。data0 全部 207 个测试通过。
+
+### 浏览器实测（本仓库 `benchmark:memory`，同机对比）
+
+稳态列表（GC 后保留堆，每行，1000 行）：
+
+| 变体 | 4.4.1 基线 | 优化后 | 参照 |
+| --- | ---: | ---: | --- |
+| axii 细粒度（函数 child） | 642B | **440B** (-31%) | **低于 solid-signal（490B）、Vue（537B）** |
+| axii atom child | 565B | **367B** (-35%) | 接近 React 全静态行（314B） |
+| axii 静态行 | 194B | **166B** (-14%) | React 314B 的一半 |
+| react / vue / solid / solid-signal | 314B / 537B / 115B / 490B | 不变 | 参照系 |
+
+10000 行时 axii 细粒度 6.02MB → **4.11MB**（631B → 431B/行）。
+
+组件树（每个带 1 个局部状态的叶子组件，1000 个）：
+
+| 框架 | 每组件 |
+| --- | ---: |
+| solid | 291B |
+| **axii（优化后）** | **652B**（原 913B，-29%） |
+| react | 825B |
+| vue | 1907B |
+
+axii 组件实例从「略重于 React」变为 **比 React 轻 21%**，约为 Vue 的 1/3。
+
+### 卫生指标与速度（必须不回退的约束）
+
+- 清空/销毁后 retained diagnostics（hosts/bindings/effects/deps）依然全部归零；
+  5000/10000 行 clear 后残留 ≈ 0KB；30 次 create/clear 循环净增 7.6KB（Solid 16KB）；
+  高频更新 100 轮净增 23KB，与基线持平。axii 601 + 6 个测试、data0 207 个测试全部通过。
+- `benchmark:real` 速度全面持平或更快：15 项对比场景 axii 总耗时 18.9ms → **18.6ms**，
+  仍保持 append/update/remove/swap/move 多数场景第一；axii 专项中
+  signal-row-create-1000 2.38ms → **1.96ms**（-17%），fine-grained-create-1000
+  2.24ms → **1.83ms**，create-clear×50 112ms → **100ms**，update-text×100 17.0ms →
+  **15.7ms**（分配变少直接反映到速度）。create-1000 的堆增量 0.60MB → **0.40MB**。
+
+### 剩余差距与定位
+
+细粒度行还剩的每行开销（~330B 框架部分）已数得过来：FunctionHost 64B、
+CompactElementHost 36B、CompactDep 24B、atom 函数 32B + 值/dep 记账 PropertyArray
+20B、用户 mapFn 闭包 + Context 48B、position 对象 24B、deps `[dep]` 28B、DOM 包装
+对象的 PropertyArray 20B。再往下压只剩两条路：把 FunctionHost 与行元素 host 合并成
+单对象（省 ~90B，但让 StaticHost 全家背上 effect 基类），或编译期把
+`() => atom()` 降级为 AtomHost 路径（省 ~70B）。两者都属于收益递减的结构性改动，
+本轮不做。组件场景已优于 React，剩余成本主要是 props 两份（normalized + children
+挂载）与 renderContext 包装，同样属于设计内成本。
+
 ## 复现方法
 
 ```bash
@@ -258,4 +377,12 @@ cd ../axii && npm install && npm run build
 cd ../benchmark && npm install && npx playwright install chromium
 npm run benchmark:memory   # 输出 results/memory-benchmark-<stamp>.{json,md}
 npm run benchmark:real     # 含 retained object diagnostics 的完整性能套件
+```
+
+复现第十节（本轮 patch）：
+
+```bash
+cd ../axii  && git apply ../benchmark/patches/axii-memory-optimization-round3.patch  && npm run build
+cd ../data0 && git apply ../benchmark/patches/data0-memory-optimization-round3.patch && npm run build
+cd ../benchmark && AXII_BENCHMARK_LOCAL_DATA0=true npm run benchmark:memory
 ```

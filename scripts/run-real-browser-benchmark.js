@@ -5,6 +5,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { annotateVersionsWithLocalSources } from "./local-dependency-sources.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -61,7 +62,8 @@ async function readPackageVersions(names) {
     const pkg = JSON.parse(await fs.readFile(pkgPath, "utf8"));
     versions[name] = pkg.version;
   }
-  return versions;
+  // axii/data0 实际可能解析到兄弟目录的本地构建，报告如实标注（见 local-dependency-sources.js）
+  return annotateVersionsWithLocalSources(versions, projectRoot);
 }
 
 function formatVersions(versions = {}) {

@@ -1,0 +1,256 @@
+From 4c2f8be182e2ea5c6d17f58959d9490cef5c4c3a Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Fri, 10 Jul 2026 11:47:55 +0000
+Subject: [PATCH 1/3] perf: shrink per-effect/atom/computed retained memory
+
+- ReactiveEffect.deps starts as a shared empty sentinel; the first tracked
+  dep swaps in a capacity-1 [dep] literal via addDep (push on an empty
+  array made V8 pre-grow the elements store to capacity 17, wasting 64B
+  on every single-dep binding effect; effects that never track pay zero)
+- primitive atom updater becomes a named function expression: the
+  self-reference no longer captures a closure variable, so each atom
+  drops its private Context object (~20B per atom)
+- Computed constructor stops using parameter properties for optional
+  args (applyPatch/callbacks/skipIndicator/preventEffectSession are
+  assigned only when provided; defaults live on the prototype)
+
+measure-retained (node --expose-gc, retained bytes per object):
+atom 176->136B, atom+1 subscriber 620->452B, light effect 136->104B,
+computed(atom dep) 946->707B, bare computed 490->388B, RxList(empty)
+274->226B. measure-speed hot paths equal or faster (in-process A/B);
+all 207 tests pass.
+---
+ src/atom.ts           | 19 ++++++++++++-------
+ src/computed.ts       | 24 +++++++++++++++++++-----
+ src/notify.ts         |  4 ++--
+ src/reactiveEffect.ts | 24 ++++++++++++++++++++++--
+ 4 files changed, 55 insertions(+), 16 deletions(-)
+
+diff --git a/src/atom.ts b/src/atom.ts
+index 0bd3f38..2a8da96 100644
+--- a/src/atom.ts
++++ b/src/atom.ts
+@@ -158,19 +158,24 @@ const primitiveAtomProto = Object.create(Function.prototype, {
+ 
+ function createPrimitiveAtom<T>(initValue: T, name?: string) {
+     // CAUTION 只能这样写才能支持 arguments.length === 0 ，否则就永远不会 为 0
+-    const updater = function(newValue?: T): T | void {
++    // CAUTION 用命名函数表达式（NFE）自引用而不是闭包变量自引用：
++    //  闭包变量自引用会让每个 atom 携带一个只装着自己的 Context 对象（每 atom ~20B 常驻）；
++    //  NFE 的名字绑定由函数对象自身承载，函数体又不捕获任何创建期变量
++    //  （initValue/name 都只在函数外使用），所以每个 atom 不再分配专属 Context。
++    const updater = function updater(newValue?: T): T | void {
++        const self = updater as PrimitiveAtomUpdater<T>
+         if (arguments.length === 0) {
+-            trackAtomValue(updater, true)
+-            return updater[PRIMITIVE_ATOM_VALUE]
++            trackAtomValue(self, true)
++            return self[PRIMITIVE_ATOM_VALUE]
+         }
+ 
+         // CAUTION 和 Proxy atom 保持一致，不再支持 newValue 为 function 的 updater 语义。
+         // Object.is 而不是 ===：NaN 重复写入不应该反复触发
+-        if (Object.is(updater[PRIMITIVE_ATOM_VALUE], newValue)) return
+-        const oldValue = updater[PRIMITIVE_ATOM_VALUE]
+-        updater[PRIMITIVE_ATOM_VALUE] = newValue as T
++        if (Object.is(self[PRIMITIVE_ATOM_VALUE], newValue)) return
++        const oldValue = self[PRIMITIVE_ATOM_VALUE]
++        self[PRIMITIVE_ATOM_VALUE] = newValue as T
+         // 标量传参：atom 写路径不构造 info 对象（见 triggerPrimitiveAtomValue）
+-        notifier.triggerPrimitiveAtomValue(updater, newValue, oldValue)
++        notifier.triggerPrimitiveAtomValue(self, newValue, oldValue)
+     } as PrimitiveAtomUpdater<T>
+ 
+     // CAUTION setPrototypeOf 要在添加自有属性之前做，V8 对"先改原型再加属性"的对象
+diff --git a/src/computed.ts b/src/computed.ts
+index df3818d..393ce17 100644
+--- a/src/computed.ts
++++ b/src/computed.ts
+@@ -179,15 +179,28 @@ export class Computed extends ReactiveEffect {
+         this._updatedAtTime = time
+         if (this._updatedAt) this._updatedAt(time)
+     }
++    // CAUTION 可选构造参数不再用参数属性（public xxx）声明：参数属性会无条件产生
++    //  own property 赋值，即使值是 undefined 也占一个实例槽位。这里全部改成
++    //  "有值才赋"，默认值放在原型上（见 class 定义后的赋值）。
++    //  getter 复用 ReactiveEffect 里同样的条件赋值，不再重复声明。
++    declare getter?: GetterType
++    declare applyPatch?: ApplyPatchType
++    declare callbacks?: CallbacksType
++    declare skipIndicator?: SkipIndicator
++    declare preventEffectSession: boolean
+     constructor(
+-        public getter?: GetterType,
+-        public applyPatch?: ApplyPatchType,
++        getter?: GetterType,
++        applyPatch?: ApplyPatchType,
+         scheduleRecompute?: DirtyCallback|true,
+-        public callbacks?: CallbacksType,
+-        public skipIndicator?: SkipIndicator,
+-        public preventEffectSession = false
++        callbacks?: CallbacksType,
++        skipIndicator?: SkipIndicator,
++        preventEffectSession?: boolean
+     ) {
+         super(getter)
++        if (applyPatch !== undefined) this.applyPatch = applyPatch
++        if (callbacks !== undefined) this.callbacks = callbacks
++        if (skipIndicator !== undefined) this.skipIndicator = skipIndicator
++        if (preventEffectSession) this.preventEffectSession = true
+         markRetainedReactiveEffectKind(this, 'Computed', this.getRetainedDiagnosticSource())
+         this._status = typeof getter === 'function' ? STATUS_DIRTY : STATUS_CLEAN
+ 
+@@ -788,6 +801,7 @@ export class Computed extends ReactiveEffect {
+ // 恒定默认值放在原型上：实例只在真正改写时才产生自有属性（同 ReactiveEffect 的做法）
+ Computed.prototype.scheduleNeedsInfos = false
+ Computed.prototype._cleanExpected = false
++Computed.prototype.preventEffectSession = false
+ 
+ /**
+  * @category Basic
+diff --git a/src/notify.ts b/src/notify.ts
+index 0d01ec7..33a0e8a 100644
+--- a/src/notify.ts
++++ b/src/notify.ts
+@@ -271,14 +271,14 @@ export class Notifier {
+       //  这才是合理的，因为不管哪种都说明 dirty。
+       dep.add(activeEffect!)
+       trackRetainedDepEffectAdded(dep)
+-      activeEffect!.deps.push(dep)
++      activeEffect!.addDep(dep)
+       // 如果是 async 的任务，那么在最后 complete 的时候应该应该用新的 dep 完全替换旧的 dep
+       if (activeEffect.isAsync) {
+         activeEffect.queueAsyncTrack(() => {
+           if(!dep.has(activeEffect!)) {
+             dep.add(activeEffect!)
+             trackRetainedDepEffectAdded(dep)
+-            activeEffect!.deps.push(dep)
++            activeEffect!.addDep(dep)
+           }
+         })
+       }
+diff --git a/src/reactiveEffect.ts b/src/reactiveEffect.ts
+index ece2f96..f6c9b32 100644
+--- a/src/reactiveEffect.ts
++++ b/src/reactiveEffect.ts
+@@ -12,6 +12,17 @@ import {
+ } from "./retainedDiagnostics";
+ 
+ 
++// CAUTION 共享的"空 deps"哨兵：所有 effect 初始都指向它，第一次 track 到 dep 时
++//  才替换成容量恰好为 1 的 [dep]（见 addDep）。两个动机：
++//  1. 渲染框架里绝大多数绑定 effect 只有 0 或 1 个 dep。旧实现 `deps = []` 后第一次
++//     push 会让 V8 直接把 elements store 扩到容量 17（0 + 0>>1 + 16），每个单 dep
++//     effect 白付 64B 常驻内存；`[dep]` 字面量的容量恰好是 1。
++//  2. 从未 track 到依赖的 effect（静态内容的 FunctionHost、探测后无依赖的 map 行）
++//     完全不为 deps 分配数组。
++//  所有写入必须走 addDep/transferCapturesTo；读取方（cleanup/dep markers/hasDeps）
++//  都有 length 守卫，对共享空数组只读不写。
++const SHARED_EMPTY_DEPS: Dep[] = []
++
+ export class ReactiveEffect extends ManualCleanup {
+     static activeScopes: ReactiveEffect[] = []
+     public active: boolean
+@@ -52,7 +63,16 @@ export class ReactiveEffect extends ManualCleanup {
+         effect.dispatch('destroy')
+     }
+ 
+-    deps: Dep[] = []
++    deps: Dep[] = SHARED_EMPTY_DEPS
++    // CAUTION deps 的唯一合法写入口（见 SHARED_EMPTY_DEPS 的说明）
++    addDep(dep: Dep) {
++        const deps = this.deps
++        if (deps === SHARED_EMPTY_DEPS) {
++            this.deps = [dep]
++        } else {
++            deps.push(dep)
++        }
++    }
+     // 有增量计算的情况会 manual track dep，这时不要做 dep marker，因为不需要 finalize 自动对比的计算的过程。
+     declare useDepMarker: boolean
+     parent?: ReactiveEffect
+@@ -321,7 +341,7 @@ export class ReactiveEffect extends ManualCleanup {
+                 if (dep.delete(this)) trackRetainedDepEffectRemoved(dep)
+                 dep.add(target)
+                 trackRetainedDepEffectAdded(dep)
+-                target.deps.push(dep)
++                target.addDep(dep)
+             }
+             deps.length = 0
+         }
+-- 
+2.43.0
+
+
+From e10ecf9d9fa8fefe04f07fe040ce39eb6bd3412d Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Fri, 10 Jul 2026 12:15:02 +0000
+Subject: [PATCH 2/3] perf(RxList): share the frozen empty frame for
+ skipItemEffect rows
+
+map(..., {skipItemEffect:true}) rows can never own effects, but every
+row still allocated a fresh [] into effectFramesArray just to keep
+splice indexes aligned; use the shared frozen EMPTY_ITEM_FRAME instead
+(matches the no-captures path of the dependency probe)
+---
+ src/RxList.ts | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/src/RxList.ts b/src/RxList.ts
+index ab5dec3..9817cbb 100644
+--- a/src/RxList.ts
++++ b/src/RxList.ts
+@@ -575,7 +575,9 @@ export class RxList<T> extends Computed {
+ 
+                     if (options?.skipItemEffect) {
+                         result[i] = mapFn(sourceData[i], source.atomIndexes?.[i]!, mapContext!)
+-                        this.effectFramesArray![i] = []
++                        // 共享的 frozen 空 frame：skipItemEffect 模式下每行必然无 effect，
++                        // 不为对齐 splice 索引的占位再逐行分配空数组
++                        this.effectFramesArray![i] = EMPTY_ITEM_FRAME
+                     } else {
+                         const [value, frame] = runItemAndCollectEffect(this, sourceData[i], i, mapContext)
+                         result[i] = value
+@@ -613,7 +615,7 @@ export class RxList<T> extends Computed {
+                             const newIndex = index + argv![0]!
+                             if (options?.skipItemEffect) {
+                                 newItem = mapFn(newItemsInArg, source.atomIndexes?.[newIndex]!, mapContext!)
+-                                effectFrames![index] = []
++                                effectFrames![index] = EMPTY_ITEM_FRAME
+                             } else {
+                                 const [value, frame] = runItemAndCollectEffect(this, newItemsInArg, newIndex, mapContext)
+                                 newItem = value
+-- 
+2.43.0
+
+
+From b27c491589cd000a7e861a958fc7c64933af0b8b Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Fri, 10 Jul 2026 12:42:55 +0000
+Subject: [PATCH 3/3] chore: freeze the shared empty deps sentinel
+
+a future direct push that bypasses addDep now throws immediately
+instead of silently polluting subscriptions across effects
+---
+ src/reactiveEffect.ts | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/src/reactiveEffect.ts b/src/reactiveEffect.ts
+index f6c9b32..9b384f4 100644
+--- a/src/reactiveEffect.ts
++++ b/src/reactiveEffect.ts
+@@ -20,8 +20,9 @@ import {
+ //  2. 从未 track 到依赖的 effect（静态内容的 FunctionHost、探测后无依赖的 map 行）
+ //     完全不为 deps 分配数组。
+ //  所有写入必须走 addDep/transferCapturesTo；读取方（cleanup/dep markers/hasDeps）
+-//  都有 length 守卫，对共享空数组只读不写。
+-const SHARED_EMPTY_DEPS: Dep[] = []
++//  都有 length 守卫，对共享空数组只读不写。freeze 保证未来出现绕过 addDep 的
++//  直接 push 时立刻抛错（ESM 严格模式），而不是静默地跨 effect 污染订阅。
++const SHARED_EMPTY_DEPS: Dep[] = Object.freeze([]) as unknown as Dep[]
+ 
+ export class ReactiveEffect extends ManualCleanup {
+     static activeScopes: ReactiveEffect[] = []
+-- 
+2.43.0
+
