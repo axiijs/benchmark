@@ -17,8 +17,8 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "axii": "^4.4.1",
-    "data0": "^2.3.0",
+    "axii": "^4.4.2",
+    "data0": "^2.4.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "solid-js": "^1.9.14",
