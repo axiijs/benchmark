@@ -72,7 +72,7 @@ npm run benchmark:memory
 npm run heap:snapshot
 ```
 
-Note: `benchmark:real` and `benchmark:memory` require a built sibling `../axii` checkout (`cd ../axii && npm run build`) and the Playwright Chromium browser (`npx playwright install chromium`).
+Note: `benchmark:real` and `benchmark:memory` use the published `axii` npm package by default (currently `^4.4.1`). A built sibling `../axii` checkout is optional and preferred when present. Playwright Chromium is also required (`npx playwright install chromium`).
 
 ## 📈 Benchmark Results
 
