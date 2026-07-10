@@ -42,7 +42,21 @@ function formatBytesPerItem(bytes, count) {
   return `${(bytes / count).toFixed(0)}B`;
 }
 
-function buildMarkdown(results) {
+async function readPackageVersions(names) {
+  const versions = {};
+  for (const name of names) {
+    const pkgPath = path.join(projectRoot, "node_modules", name, "package.json");
+    const pkg = JSON.parse(await fs.readFile(pkgPath, "utf8"));
+    versions[name] = pkg.version;
+  }
+  return versions;
+}
+
+function formatVersions(versions = {}) {
+  return Object.entries(versions).map(([name, version]) => `${name}@${version}`).join(", ");
+}
+
+function buildMarkdown(results, versions) {
   const counts = results[frameworks[0]].settings.counts;
   const lines = [
     "# Framework Memory Benchmark Results",
@@ -50,6 +64,8 @@ function buildMarkdown(results) {
     `Generated: ${new Date().toISOString()}`,
     "",
     "Retained JS heap measured with `performance.memory.usedJSHeapSize` after forced GC (`--js-flags=--expose-gc --enable-precise-memory-info`), one fresh Chromium page per framework. Values are medians across iterations.",
+    "",
+    `Versions: ${formatVersions(versions)}.`,
     "",
     "## Retained Heap After Rendering N Rows",
     "",
@@ -205,8 +221,10 @@ async function main() {
     // 固定路径的静态报告，随仓库提交
     const staticJsonFile = path.join(projectRoot, "reports/memory-benchmark.json");
     const staticMarkdownFile = path.join(projectRoot, "reports/memory-benchmark.md");
-    const json = `${JSON.stringify(results, null, 2)}\n`;
-    const markdown = buildMarkdown(results);
+    const versions = await readPackageVersions(["axii", "data0", "react", "react-dom", "vue", "solid-js"]);
+    const payload = { versions, ...results };
+    const json = `${JSON.stringify(payload, null, 2)}\n`;
+    const markdown = buildMarkdown(results, versions);
     await fs.mkdir(path.join(projectRoot, "reports"), { recursive: true });
     await fs.writeFile(jsonFile, json);
     await fs.writeFile(markdownFile, markdown);

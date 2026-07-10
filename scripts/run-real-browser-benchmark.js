@@ -54,6 +54,20 @@ function formatCountMap(counts = {}) {
   return entries.map(([key, value]) => `${key}:${value}`).join(", ");
 }
 
+async function readPackageVersions(names) {
+  const versions = {};
+  for (const name of names) {
+    const pkgPath = path.join(projectRoot, "node_modules", name, "package.json");
+    const pkg = JSON.parse(await fs.readFile(pkgPath, "utf8"));
+    versions[name] = pkg.version;
+  }
+  return versions;
+}
+
+function formatVersions(versions = {}) {
+  return Object.entries(versions).map(([name, version]) => `${name}@${version}`).join(", ");
+}
+
 function buildMarkdown(result) {
   const frameworks = Object.keys(result.tests);
   const testNames = result.settings.tests?.map((test) => test.name) ?? Object.keys(result.tests[frameworks[0]]);
@@ -67,6 +81,8 @@ function buildMarkdown(result) {
     `Generated: ${result.timestamp}`,
     "",
     "These numbers were collected by Playwright in Chromium from actual DOM-rendering implementations of Axii, React, Vue, and Solid. No mocked framework timings are used.",
+    "",
+    `Versions: ${formatVersions(result.versions)}.`,
     "",
     `Settings: ${result.settings.iterations} measured iterations, ${result.settings.warmup} warmup iterations, base list size ${result.settings.baseCount}.`,
     "",
@@ -235,6 +251,7 @@ async function main() {
     const staticJsonFile = "reports/performance-benchmark.json";
     const staticMarkdownFile = "reports/performance-benchmark.md";
     result.rawJsonFile = staticJsonFile;
+    result.versions = await readPackageVersions(["axii", "data0", "react", "react-dom", "vue", "solid-js"]);
 
     const staticJson = `${JSON.stringify(result, null, 2)}\n`;
     const markdown = buildMarkdown(result);
